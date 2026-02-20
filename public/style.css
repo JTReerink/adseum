@@ -1,0 +1,7 @@
+/* Styles are primarily handled by Tailwind logic in index.html for this iteration */
+/* Keeping file for future custom styles if needed */
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
