@@ -30,16 +30,32 @@ export const animateDots = (container = document) => {
         const inkD = path ? path.getAttribute('data-ink-d') : null;
         const inkSize = dot.getAttribute('data-ink-size'); // Size is on SVG
 
-        // Random start position (scattered)
-        // Ensure starting coordinates are always within the visible viewport.
-        const rect = dot.getBoundingClientRect();
-        const startX = rand(0, window.innerWidth) - rect.left;
-        const startY = rand(0, window.innerHeight) - rect.top;
-
         // Initial Large Splatter Size
-        // "Fill half the screen" - let's make them quite large relative to viewport
+        // Cap the maximum size to 80% of window width so it physically can't blow out mobile screens
         const minDim = Math.min(window.innerWidth, window.innerHeight);
-        const startSize = rand(minDim * 0.4, minDim * 0.6); // 40-60% of screen min dimension
+        let startSize = rand(minDim * 0.2, minDim * 0.4); // 20-40% of screen min dimension
+        startSize = Math.min(startSize, window.innerWidth * 0.8);
+
+        // Random start position (scattered)
+        // Constrain startX tightly so the blob's right edge NEVER exceeds the exact window bound
+        const rect = dot.getBoundingClientRect();
+
+        // Calculate random spawn point using the absolute CENTER of the blob. 
+        // Because the blob expands inside a 'flex justify-center' container, its physical top-left moves left by startSize/2.
+        // Doing the math purely based on the center-point elegantly neutralizes this flex layout shift!
+        const initialCenterX = rect.left + (rect.width / 2);
+        const initialCenterY = rect.top + (rect.height / 2);
+
+        const minCenterX = startSize / 2;
+        const maxCenterX = window.innerWidth - (startSize / 2);
+        const randomCenterX = rand(minCenterX, maxCenterX);
+
+        const minCenterY = startSize / 2;
+        const maxCenterY = window.innerHeight - (startSize / 2);
+        const randomCenterY = rand(minCenterY, maxCenterY);
+
+        const startX = randomCenterX - initialCenterX;
+        const startY = randomCenterY - initialCenterY;
 
         gsap.set(dot, {
             x: startX,
@@ -147,6 +163,7 @@ export const initScrollAnimations = () => {
             trigger: section,
             start: "top 85%",
             once: true,
+            invalidateOnRefresh: true, // Recalculate triggers naturally if height changes
             markers: false, // Set to true for debugging if needed
             onEnter: () => {
                 console.log("ScrollTrigger onEnter for:", section.id);

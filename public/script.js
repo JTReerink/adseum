@@ -63,8 +63,14 @@ document.addEventListener('DOMContentLoaded', () => {
         handleRender();
     });
 
+    let lastWidth = window.innerWidth;
     // Handle responsive resizing
     window.addEventListener('resize', () => {
+        // Mobile browsers trigger 'resize' when the URL bar hides during scroll (changing height).
+        // We ONLY want to re-render if the WIDTH actually changed to prevent glitching mid-scroll.
+        if (window.innerWidth === lastWidth) return;
+        lastWidth = window.innerWidth;
+
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
             if (Object.keys(window.letters).length > 0) {
