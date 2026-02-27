@@ -1,16 +1,17 @@
 import { WIGGLE_DIST, rand } from './config.js';
 
 // 1. Entrance (Staggered fade in/scale)
-export const animateDots = (containerSelector) => {
+export const animateDots = (container = document) => {
+    const parent = typeof container === 'string' ? document.querySelector(container) : container;
+
     // Only block interaction for the main logo animation (when no container is provided or explicitly logo)
-    const isMainLogo = !containerSelector || containerSelector === '#logo-grid';
+    const isMainLogo = container === document || container === '#logo-grid' || (parent && parent.id === 'hero');
     if (isMainLogo) {
         window.isAnimationComplete = false;
     }
-    console.log("animateDots triggered for:", containerSelector);
+    console.log("animateDots triggered for:", container);
     const tl = gsap.timeline();
 
-    const parent = containerSelector ? document.querySelector(containerSelector) : document;
     if (!parent) return;
 
     const inkDots = parent.querySelectorAll('.dot-wrapper svg[data-type="ink"]');
@@ -23,9 +24,10 @@ export const animateDots = (containerSelector) => {
         const inkSize = dot.getAttribute('data-ink-size'); // Size is on SVG
 
         // Random start position (scattered)
-        // Using a wider range to simulate them coming from "everywhere"
-        const startX = rand(-window.innerWidth / 2, window.innerWidth / 2);
-        const startY = rand(-window.innerHeight / 2, window.innerHeight / 2);
+        // Ensure starting coordinates are always within the visible viewport.
+        const rect = dot.getBoundingClientRect();
+        const startX = rand(0, window.innerWidth) - rect.left;
+        const startY = rand(0, window.innerHeight) - rect.top;
 
         // Initial Large Splatter Size
         // "Fill half the screen" - let's make them quite large relative to viewport
@@ -113,7 +115,7 @@ export const animateDots = (containerSelector) => {
             // After any animation completes, refresh the target list so hover works
             if (window.updateWiggleTargets) window.updateWiggleTargets();
 
-            const isMainLogo = !containerSelector || containerSelector === '#logo-grid';
+            const isMainLogo = container === document || container === '#logo-grid' || (parent && parent.id === 'hero');
             if (isMainLogo) {
                 window.isAnimationComplete = true; // Enable interaction main logo
             }
@@ -124,23 +126,24 @@ export const animateDots = (containerSelector) => {
 export const initScrollAnimations = () => {
     gsap.registerPlugin(ScrollTrigger);
 
-    const sections = ['#about', '#projects', '#contact'];
-
-    sections.forEach(sectionId => {
-        const headingId = `${sectionId}-heading`;
+    gsap.utils.toArray('section').forEach(section => {
+        // Skip the hero section, it is animated separately on load
+        if (section.id === 'hero') return;
 
         // Setup initially hidden state for the heading dots to prevent pop-in before scroll
-        const headingDots = document.querySelectorAll(`${headingId} .dot-wrapper svg`);
+        const headingDots = section.querySelectorAll('.dot-wrapper svg');
+        if (headingDots.length === 0) return; // Skip sections without dots
+
         gsap.set(headingDots, { opacity: 0 });
 
         ScrollTrigger.create({
-            trigger: sectionId,
-            start: "top 80%",
+            trigger: section,
+            start: "top 85%",
             once: true,
             markers: false, // Set to true for debugging if needed
             onEnter: () => {
-                console.log("ScrollTrigger onEnter for:", headingId);
-                animateDots(headingId);
+                console.log("ScrollTrigger onEnter for:", section.id);
+                animateDots(section);
             }
         });
     });
