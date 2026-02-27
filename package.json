@@ -1,0 +1,24 @@
+{
+  "name": "adseum",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JTReerink/adseum.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/JTReerink/adseum/issues"
+  },
+  "homepage": "https://github.com/JTReerink/adseum#readme",
+  "dependencies": {
+    "firebase": "^12.10.0"
+  }
+}

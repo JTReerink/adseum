@@ -1,5 +1,5 @@
 import { renderLetter, renderText } from './modules/renderer.js';
-import { animateDots, initAnimations } from './modules/animations.js';
+import { animateDots, initAnimations, initScrollAnimations } from './modules/animations.js';
 import { listenToLetters } from './modules/database.js';
 
 // Expose functions to global scope for HTML/Firebase compatibility
@@ -20,16 +20,23 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = '';
             renderText('logo-grid', 'ADseum');
 
+            // Render section headings using the scalable font system
+            console.log("AVAILABLE LETTERS:", Object.keys(window.letters));
+            renderText('about-heading', 'About', { dotSize: 8, monochrome: true, letterSpacing: 16 });
+            renderText('projects-heading', 'Projects', { dotSize: 8, monochrome: true, letterSpacing: 16 });
+            renderText('contact-heading', 'Contact', { dotSize: 8, monochrome: true, letterSpacing: 16 });
+
             if (isFirstFetch) {
                 // First time running animations
-                initAnimations();
+                initAnimations('#logo-grid');
+                initScrollAnimations();
                 isFirstFetch = false;
             } else {
                 // Update existing animations
                 if (window.updateWiggleTargets) {
                     window.updateWiggleTargets();
                 }
-                animateDots();
+                animateDots('#logo-grid');
             }
         }
     });

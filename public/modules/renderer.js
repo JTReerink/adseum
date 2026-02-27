@@ -3,7 +3,8 @@ import { createDot } from './dot.js';
 
 export const renderLetter = (char, grid, options = {}) => {
     const dotSize = options.dotSize || DOT_SIZE;
-    const gap = options.gap !== undefined ? options.gap : DOT_SPACING;
+    const sizeRatio = dotSize / DOT_SIZE;
+    const gap = options.gap !== undefined ? options.gap : (DOT_SPACING * sizeRatio);
     const colors = options.colors || palette;
 
     const letterCol = document.createElement('div');
@@ -45,7 +46,7 @@ export const renderLetter = (char, grid, options = {}) => {
                 const key = `${rowIndex},${colIndex}`;
                 let color = 'black';
 
-                if (coloredPosStrings.has(key)) {
+                if (coloredPosStrings.has(key) && !options.monochrome) {
                     color = colors[Math.floor(Math.random() * colors.length)];
                 }
 
