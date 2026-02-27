@@ -137,7 +137,7 @@ export const initScrollAnimations = () => {
             trigger: sectionId,
             start: "top 80%",
             once: true,
-            markers: true, // Set to true for debugging if needed
+            markers: false, // Set to true for debugging if needed
             onEnter: () => {
                 console.log("ScrollTrigger onEnter for:", headingId);
                 animateDots(headingId);

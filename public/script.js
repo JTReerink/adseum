@@ -14,6 +14,15 @@ window.letters = {};
 let isFirstFetch = true;
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Force browser to not restore previous scroll position
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+
+    // Fallback for some browsers that trigger restoration after DOMContentLoaded
+    setTimeout(() => window.scrollTo(0, 0), 50);
+
     listenToLetters(() => {
         const container = document.getElementById('logo-grid');
         if (container) {
@@ -22,9 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Render section headings using the scalable font system
             console.log("AVAILABLE LETTERS:", Object.keys(window.letters));
-            renderText('about-heading', 'About', { dotSize: 8, monochrome: true, letterSpacing: 16 });
-            renderText('projects-heading', 'Projects', { dotSize: 8, monochrome: true, letterSpacing: 16 });
-            renderText('contact-heading', 'Contact', { dotSize: 8, monochrome: true, letterSpacing: 16 });
+            renderText('about-heading', 'About', { dotSize: 8, monochrome: true });
+            renderText('projects-heading', 'Projects', { dotSize: 8, monochrome: true });
+            renderText('contact-heading', 'Contact', { dotSize: 8, monochrome: true });
 
             if (isFirstFetch) {
                 // First time running animations
