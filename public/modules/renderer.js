@@ -1,12 +1,16 @@
-import { DOT_SPACING, LETTER_SPACING, palette, rand } from './config.js';
+import { DOT_SIZE, DOT_SPACING, LETTER_SPACING, palette, rand } from './config.js';
 import { createDot } from './dot.js';
 
-export const renderLetter = (char, grid) => {
+export const renderLetter = (char, grid, options = {}) => {
+    const dotSize = options.dotSize || DOT_SIZE;
+    const gap = options.gap !== undefined ? options.gap : DOT_SPACING;
+    const colors = options.colors || palette;
+
     const letterCol = document.createElement('div');
-    letterCol.className = 'grid gap-1';
+    letterCol.className = 'grid';
     letterCol.style.display = 'grid';
     letterCol.style.gridTemplateColumns = `repeat(${grid[0].length}, 1fr)`;
-    letterCol.style.gap = `${DOT_SPACING}px`;
+    letterCol.style.gap = `${gap}px`;
 
     // 1. Identify valid dot positions associated with this letter
     const validPositions = [];
@@ -42,11 +46,13 @@ export const renderLetter = (char, grid) => {
                 let color = 'black';
 
                 if (coloredPosStrings.has(key)) {
-                    color = palette[Math.floor(Math.random() * palette.length)];
+                    color = colors[Math.floor(Math.random() * colors.length)];
                 }
 
                 const dotWrapper = document.createElement('div');
-                dotWrapper.className = 'dot-wrapper flex justify-center items-center w-3 h-3 md:w-4 md:h-4';
+                dotWrapper.className = 'dot-wrapper flex justify-center items-center';
+                dotWrapper.style.width = `${dotSize}px`;
+                dotWrapper.style.height = `${dotSize}px`;
                 // Higher Z-Index for Colored Dots? NO, User wants them BEHIND black dots.
                 // Black dots (standard) should be on top.
                 if (color !== 'black') {
@@ -56,13 +62,14 @@ export const renderLetter = (char, grid) => {
                 }
                 dotWrapper.style.position = 'relative'; // Ensure z-index works
 
-                const dot = createDot(color);
+                const dot = createDot(color, { dotSize });
                 dotWrapper.appendChild(dot);
                 letterCol.appendChild(dotWrapper);
             } else {
                 // Empty space
                 const spacer = document.createElement('div');
-                spacer.className = 'w-3 h-3 md:w-4 md:h-4';
+                spacer.style.width = `${dotSize}px`;
+                spacer.style.height = `${dotSize}px`;
                 letterCol.appendChild(spacer);
             }
         });
@@ -70,21 +77,22 @@ export const renderLetter = (char, grid) => {
     return letterCol;
 };
 
-export const renderText = (containerId, text) => {
+export const renderText = (containerId, text, options = {}) => {
     const container = document.getElementById(containerId);
     if (!container) return;
 
     // Apply letter spacing from config
     // container.style.gap = `${LETTER_SPACING}px`; 
     // Commented out as explicitly set to 0 in HTML/CSS logic previously, or we can enforce it here:
-    container.style.gap = `${LETTER_SPACING}px`;
+    const letterGap = options.letterSpacing !== undefined ? options.letterSpacing : LETTER_SPACING;
+    container.style.gap = `${letterGap}px`;
 
     text.split('').forEach(char => {
         // Handle case sensitivity if needed, currently matching keys exactly
         // Access 'letters' from global window scope as it's defined in letters.js
         const key = Object.keys(window.letters || {}).find(k => k === char) || char;
         if (window.letters && window.letters[key]) {
-            container.appendChild(renderLetter(key, window.letters[key]));
+            container.appendChild(renderLetter(key, window.letters[key], options));
         } else {
             console.warn(`Letter '${char}' not found in configuration.`);
         }

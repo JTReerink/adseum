@@ -1,7 +1,7 @@
 import { DOT_SIZE, rand } from './config.js';
 
 // Helper: Create SVG Dot
-export const createDot = (color = 'black') => {
+export const createDot = (color = 'black', options = {}) => {
     const isInk = color !== 'black';
     const ns = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(ns, "svg");
@@ -64,8 +64,10 @@ export const createDot = (color = 'black') => {
         initialPathData = inkPathData;
     }
 
-    const stdSize = DOT_SIZE + rand(-2, 3);
-    const inkSize = rand(85, 125); // Adjusted to match reference image (approx 3-4x dot size)
+    const dotSize = options.dotSize || DOT_SIZE;
+    const sizeRatio = dotSize / DOT_SIZE;
+    const stdSize = dotSize + sizeRatio * rand(-2, 3);
+    const inkSize = sizeRatio * rand(85, 125); // Adjusted to scale with dotSize proportionally
 
     // Choose initial size
     // REVERSED: Start as standard size, grow to ink size logic handled in mousemove
