@@ -16,6 +16,13 @@ export const animateDots = (container = document) => {
 
     const inkDots = parent.querySelectorAll('.dot-wrapper svg[data-type="ink"]');
     const rainDots = parent.querySelectorAll('.dot-wrapper svg[data-type="standard"]');
+
+    // Fail-safe: if there are no dots at all, exit the animation to prevent errors
+    if (inkDots.length === 0 && rainDots.length === 0) {
+        console.warn("No dots found in", container, "skipping animation.");
+        return;
+    }
+
     console.log(`Found ${inkDots.length} ink dots and ${rainDots.length} rain dots.`);
     inkDots.forEach(dot => {
         const path = dot.querySelector('path');

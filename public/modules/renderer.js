@@ -4,6 +4,8 @@ import { createDot } from './dot.js';
 export const renderLetter = (char, grid, options = {}) => {
     const dotSize = options.dotSize || DOT_SIZE;
     const sizeRatio = dotSize / DOT_SIZE;
+
+    // Scale the intra-letter dot gap exactly proportionally to the downscaled dotSize
     const gap = options.gap !== undefined ? options.gap : (DOT_SPACING * sizeRatio);
     const colors = options.colors || palette;
 
@@ -11,6 +13,7 @@ export const renderLetter = (char, grid, options = {}) => {
     letterCol.className = 'grid';
     letterCol.style.display = 'grid';
     letterCol.style.gridTemplateColumns = `repeat(${grid[0].length}, 1fr)`;
+    // Apply gap but ensure it can drop to sub-pixel values (don't floor it if we need tight packing)
     letterCol.style.gap = `${gap}px`;
 
     // 1. Identify valid dot positions associated with this letter
@@ -83,19 +86,77 @@ export const renderText = (containerId, text, options = {}) => {
     if (!container) return;
 
     // Apply letter spacing from config
-    // container.style.gap = `${LETTER_SPACING}px`; 
-    // Commented out as explicitly set to 0 in HTML/CSS logic previously, or we can enforce it here:
     const letterGap = options.letterSpacing !== undefined ? options.letterSpacing : LETTER_SPACING;
     container.style.gap = `${letterGap}px`;
 
-    text.split('').forEach(char => {
-        // Handle case sensitivity if needed, currently matching keys exactly
-        // Access 'letters' from global window scope as it's defined in letters.js
-        const key = Object.keys(window.letters || {}).find(k => k === char) || char;
-        if (window.letters && window.letters[key]) {
-            container.appendChild(renderLetter(key, window.letters[key], options));
-        } else {
-            console.warn(`Letter '${char}' not found in configuration.`);
+    // Calculate optimal dotSize if none provided or to ensure it fits container width
+    let finalOptions = { ...options };
+
+    // Only calculate dynamic size if we are trying to fit the container width
+    if (container.clientWidth > 0) {
+        let totalColumns = 0;
+        const validChars = [];
+
+        // Sum up total columns needed
+        text.split('').forEach(char => {
+            const key = Object.keys(window.letters || {}).find(k => k === char) || char;
+            if (window.letters && window.letters[key]) {
+                totalColumns += window.letters[key][0].length;
+                validChars.push(key);
+            } else {
+                console.warn(`Letter '${char}' not found in configuration.`);
+            }
+        });
+
+        const containerWidth = container.offsetWidth || window.innerWidth;
+
+        if (totalColumns > 0) {
+            // Calculate available width minus all the gaps between letters and some padding
+            const numGaps = validChars.length > 1 ? validChars.length - 1 : 0;
+            const availableWidth = containerWidth - (numGaps * letterGap) - 40;
+
+            // Calculate the ideal size of a single dot
+            // We know each dot essentially takes up 1 part dotSize + some proportional gap
+            const gapRatio = DOT_SPACING / DOT_SIZE;
+            const widthPerColumn = 1 + gapRatio; // 1 unit for dot + ratio for gap
+
+            let calculatedSize = availableWidth / (totalColumns * widthPerColumn);
+
+            // Cap it at a maximum (either options.dotSize or DOT_SIZE) and minimum of 2
+            const maxSize = options.dotSize || DOT_SIZE;
+            finalOptions.dotSize = Math.max(2, Math.min(calculatedSize, maxSize));
+
+            // Keep decimal precision for smooth sub-pixel fitting on mobile layout
+            // finalOptions.dotSize = Math.max(2, Math.floor(finalOptions.dotSize));
+        }
+    }
+
+    // Split text into words to prevent letters wrapping individually
+    const words = text.split(' ');
+
+    words.forEach((word, wordIndex) => {
+        const wordContainer = document.createElement('div');
+        wordContainer.style.display = 'flex';
+        wordContainer.style.flexWrap = 'nowrap';
+        wordContainer.style.gap = `${letterGap}px`;
+
+        word.split('').forEach(char => {
+            const key = Object.keys(window.letters || {}).find(k => k === char) || char;
+            if (window.letters && window.letters[key]) {
+                wordContainer.appendChild(renderLetter(key, window.letters[key], finalOptions));
+            }
+        });
+
+        container.appendChild(wordContainer);
+
+        // If not the last word, we can add a space element (or let the container's gap handle it)
+        // We'll rely on the main container's gap-y or gap-x for spacing between words
+        // Let's explicitly add a space if needed to maintain sentence structure if it doesn't wrap
+        if (wordIndex < words.length - 1) {
+            const space = document.createElement('div');
+            // Make space width equivalent to roughly 2 letters + gaps
+            space.style.width = `${(finalOptions.dotSize * 10) + letterGap}px`;
+            container.appendChild(space);
         }
     });
 };
