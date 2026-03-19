@@ -19,6 +19,26 @@
 
 <body class="bg-[#FDFDFD] overflow-x-hidden overflow-y-auto relative w-full">
 
+    <!-- Navbar -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-4">
+        <!-- Logo (rendered by JS, fades in on scroll) -->
+        <div id="nav-logo" class="flex-shrink-0 opacity-0">
+            <!-- Small ADseum logo injected here -->
+        </div>
+        <!-- Nav Links -->
+        <ul class="nav-links flex items-center gap-10 m-0 p-0 list-none opacity-0">
+            <li><a href="#about"
+                    class="text-gray-800 text-[0.65rem] tracking-[0.25em] uppercase font-bold no-underline hover:opacity-40 transition-opacity duration-300">About</a>
+            </li>
+            <li><a href="#projects"
+                    class="text-gray-800 text-[0.65rem] tracking-[0.25em] uppercase font-bold no-underline hover:opacity-40 transition-opacity duration-300">Projects</a>
+            </li>
+            <li><a href="#contact"
+                    class="text-gray-800 text-[0.65rem] tracking-[0.25em] uppercase font-bold no-underline hover:opacity-40 transition-opacity duration-300">Contact</a>
+            </li>
+        </ul>
+    </nav>
+
     <!-- Hero Section -->
     <section id="hero" class="w-full h-screen flex flex-col justify-center items-center relative">
         <!-- Background Blobs -->
@@ -50,7 +70,7 @@
     <!-- CONTENT SECTIONS -->
     <!-- About Section -->
     <section id="about"
-        class="w-full min-h-screen flex flex-col items-center justify-center py-24 px-4 relative z-10 mt-12">
+        class="w-full min-h-screen flex flex-col items-center justify-center py-24 px-4 relative z-10">
         <div id="about-heading" class="w-full flex flex-wrap mb-12 justify-center gap-y-8"></div>
         <div class="max-w-2xl text-center text-gray-700 text-lg md:text-xl leading-relaxed">
             <p>Placeholder for About Us content. We are dedicated to empowering queer art through dynamic digital

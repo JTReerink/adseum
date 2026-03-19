@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" style="overflow-x: hidden;">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADSEUM - Coming Soon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+
+<body class="bg-[#FDFDFD] overflow-hidden w-full h-screen flex flex-col justify-center items-center relative">
+
+    <!-- Background Blobs -->
+    <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div class="blob absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-pink-300/30 blur-[100px] rounded-full"></div>
+        <div class="blob absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] bg-yellow-200/40 blur-[120px] rounded-full"></div>
+        <div class="blob absolute top-[20%] right-[10%] w-[40vw] h-[40vw] bg-blue-200/30 blur-[80px] rounded-full"></div>
+    </div>
+
+    <!-- Logo -->
+    <div id="logo-grid" class="relative z-10 w-full px-4 flex flex-wrap justify-center gap-y-4"></div>
+
+    <!-- Coming Soon + Tagline -->
+    <div class="absolute bottom-16 z-10 flex flex-col items-center gap-3 opacity-0 subtitle-anim">
+        <p class="text-gray-800 tracking-[0.4em] text-xs md:text-sm font-bold uppercase">Coming Soon</p>
+        <p class="text-gray-400 tracking-[0.25em] text-[0.6rem] md:text-xs uppercase">Empowering Queer Art</p>
+    </div>
+
+    <script type="module" src="coming-soon.js"></script>
+</body>
+
+</html>
