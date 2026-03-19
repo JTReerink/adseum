@@ -4,7 +4,7 @@ export const DOT_SPACING = 6; // Spacing between dots within a letter
 export const LETTER_SPACING = 0; // Spacing between letters
 export const WIGGLE_DIST = 100;
 
-export const palette = ['#FF7000', '#325AF1', '#FFE600', '#FF0C0D', '#10B981', '#EC4899']; // Orange, Blue, Yellow, Red, Green, Pink
+export const palette = ['#FF7000', '#325AF1', '#FF85AA', '#50C8FF', '#FFE600', '#AA1EAA', '#FF0000', '#5AD836', '#964B00', '#FFFFFF']; // Orange, Blue, Pink, Light Blue, Yellow, Purple, Red, Green, Brown, White
 
 // Helper: Random float between min/max
 export const rand = (min, max) => Math.random() * (max - min) + min;

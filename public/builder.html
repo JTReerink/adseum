@@ -12,19 +12,57 @@
             height: 30px;
             border: 1px solid #e5e7eb;
             cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .cell.active {
-            background-color: #000;
+            transition: background-color 0.1s;
+            box-sizing: border-box;
         }
 
         .cell:hover {
-            background-color: #f3f4f6;
+            filter: brightness(0.85);
         }
 
-        .cell.active:hover {
-            background-color: #333;
+        .color-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            transition: transform 0.1s;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.15);
+        }
+
+        .color-swatch.selected {
+            border: 3px solid #4f46e5;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #4f46e5;
+        }
+
+        .eraser-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #d1d5db;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: transform 0.1s;
+        }
+
+        .eraser-swatch:hover {
+            transform: scale(1.15);
+        }
+
+        .eraser-swatch.selected {
+            border: 3px solid #4f46e5;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #4f46e5;
         }
     </style>
 </head>
@@ -60,8 +98,17 @@
         </div>
 
         <div>
+            <label class="block text-sm font-bold mb-2">Dot Color:</label>
+            <p class="text-xs text-gray-500 mb-2">Select a color, then click a dot to assign it. Select the eraser to draw uncoloured (black) dots.</p>
+            <div class="flex flex-wrap gap-2 items-center" id="color-palette">
+                <!-- Swatches injected by JS -->
+            </div>
+            <p class="text-xs text-gray-400 mt-2">Selected: <span id="selected-color-label" class="font-bold">None (black)</span></p>
+        </div>
+
+        <div>
             <label class="block text-sm font-bold mb-2">Usage:</label>
-            <p class="text-xs text-gray-600">Click cells to toggle dots.</p>
+            <p class="text-xs text-gray-600">Click cells to toggle dots on/off. With a color selected, clicking an active dot changes its colour. Click an active dot again with the same colour to remove it.</p>
         </div>
 
         <div class="mt-auto border-t pt-4">
@@ -120,13 +167,34 @@
 
     <!-- Import Main Script for shared logic (createDot etc) -->
     <script src="letters.js"></script>
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 
     <script>
-        // --- Core Editor Logic (Works Offline) ---
+        // Ensure globals exist (letters.js sets window.letters; we own letterColors)
+        window.letters = window.letters || {};
+        window.letterColors = window.letterColors || {};
+
+        // --- Colour palette (matches brand colours) ---
+        const PALETTE = [
+            { color: '#FF7000', label: 'Orange' },
+            { color: '#325AF1', label: 'Blue' },
+            { color: '#FF85AA', label: 'Pink' },
+            { color: '#50C8FF', label: 'Light Blue' },
+            { color: '#FFE600', label: 'Yellow' },
+            { color: '#AA1EAA', label: 'Purple' },
+            { color: '#FF0000', label: 'Red' },
+            { color: '#5AD836', label: 'Green' },
+            { color: '#964B00', label: 'Brown' },
+            { color: '#FFFFFF', label: 'White' },
+        ];
+
+        let selectedColor = null; // null = default black (no explicit colour)
+
+        // --- Core Editor Logic ---
         let ROWS = 11;
         let COLS = 7;
         let currentGrid = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+        let currentColorGrid = Array(ROWS).fill().map(() => Array(COLS).fill(null));
 
         const editorGrid = document.getElementById('editor-grid');
         const letterNameInput = document.getElementById('letter-name');
@@ -134,6 +202,54 @@
         const letterButtons = document.getElementById('letter-buttons');
         const rowsInput = document.getElementById('grid-rows');
         const colsInput = document.getElementById('grid-cols');
+        const selectedColorLabel = document.getElementById('selected-color-label');
+
+        function initColorPalette() {
+            const paletteEl = document.getElementById('color-palette');
+            paletteEl.innerHTML = '';
+
+            // Eraser / no colour swatch (default)
+            const eraser = document.createElement('div');
+            eraser.className = 'eraser-swatch selected';
+            eraser.title = 'No colour (black dot)';
+            eraser.textContent = '✕';
+            eraser.addEventListener('click', () => {
+                selectedColor = null;
+                selectedColorLabel.textContent = 'None (black)';
+                updateSwatchSelection(eraser);
+            });
+            paletteEl.appendChild(eraser);
+
+            PALETTE.forEach(({ color, label }) => {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.title = label + ' (' + color + ')';
+                swatch.style.backgroundColor = color;
+                // White needs a visible border when unselected
+                if (color === '#FFFFFF') swatch.style.border = '2px solid #d1d5db';
+                swatch.addEventListener('click', () => {
+                    selectedColor = color;
+                    selectedColorLabel.textContent = label + ' ' + color;
+                    updateSwatchSelection(swatch);
+                });
+                paletteEl.appendChild(swatch);
+            });
+        }
+
+        function updateSwatchSelection(activeSwatch) {
+            document.querySelectorAll('#color-palette .color-swatch, #color-palette .eraser-swatch').forEach(s => {
+                s.classList.remove('selected');
+                // Restore white border for white swatch
+                if (s.style.backgroundColor === 'rgb(255, 255, 255)' && s.classList.contains('color-swatch')) {
+                    s.style.border = '2px solid #d1d5db';
+                } else if (s.classList.contains('color-swatch')) {
+                    s.style.border = '2px solid transparent';
+                } else {
+                    s.style.border = '2px solid #d1d5db';
+                }
+            });
+            activeSwatch.classList.add('selected');
+        }
 
         function initEditor(preserveData = false) {
             rowsInput.value = ROWS;
@@ -143,14 +259,16 @@
 
             if (!preserveData) {
                 currentGrid = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+                currentColorGrid = Array(ROWS).fill().map(() => Array(COLS).fill(null));
             }
 
             for (let r = 0; r < ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
                     const cell = document.createElement('div');
                     cell.className = 'cell';
+                    const color = currentColorGrid[r] && currentColorGrid[r][c];
                     if (currentGrid[r] && currentGrid[r][c]) {
-                        cell.classList.add('active');
+                        cell.style.backgroundColor = color || '#000000';
                     }
                     cell.dataset.r = r;
                     cell.dataset.c = c;
@@ -165,22 +283,41 @@
             const newRows = parseInt(rowsInput.value) || 11;
             const newCols = parseInt(colsInput.value) || 7;
             const newGrid = Array(newRows).fill().map(() => Array(newCols).fill(0));
+            const newColorGrid = Array(newRows).fill().map(() => Array(newCols).fill(null));
 
             for (let r = 0; r < Math.min(ROWS, newRows); r++) {
                 for (let c = 0; c < Math.min(COLS, newCols); c++) {
                     newGrid[r][c] = currentGrid[r][c];
+                    newColorGrid[r][c] = currentColorGrid[r][c];
                 }
             }
 
             ROWS = newRows;
             COLS = newCols;
             currentGrid = newGrid;
+            currentColorGrid = newColorGrid;
             initEditor(true);
         }
 
         function toggleCell(r, c, cell) {
-            currentGrid[r][c] = currentGrid[r][c] ? 0 : 1;
-            cell.classList.toggle('active');
+            const isOn = currentGrid[r][c] === 1;
+            const cellColor = currentColorGrid[r][c];
+
+            if (!isOn) {
+                // Turn on with selected colour
+                currentGrid[r][c] = 1;
+                currentColorGrid[r][c] = selectedColor;
+                cell.style.backgroundColor = selectedColor || '#000000';
+            } else if (cellColor === selectedColor) {
+                // Same colour → turn off
+                currentGrid[r][c] = 0;
+                currentColorGrid[r][c] = null;
+                cell.style.backgroundColor = '';
+            } else {
+                // Different colour → change colour (keep dot on)
+                currentColorGrid[r][c] = selectedColor;
+                cell.style.backgroundColor = selectedColor || '#000000';
+            }
             updatePreview();
         }
 
@@ -191,16 +328,27 @@
             COLS = data[0].length;
             currentGrid = JSON.parse(JSON.stringify(data));
 
-            // Pre-fill name input for easier editing/deleting
-            letterNameInput.value = char;
+            // Load colour assignments for this letter
+            const colorMap = (window.letterColors && window.letterColors[char]) || {};
+            currentColorGrid = Array(ROWS).fill().map((_, r) =>
+                Array(COLS).fill(null).map((_, c) => colorMap[`${r},${c}`] || null)
+            );
 
+            letterNameInput.value = char;
             initEditor(true);
         }
 
         function updatePreview() {
             previewContainer.innerHTML = '';
             if (typeof renderLetter === 'function') {
-                const rendered = renderLetter('custom', currentGrid);
+                // Build colorMap from currentColorGrid
+                const colorMap = {};
+                currentColorGrid.forEach((row, r) => {
+                    row.forEach((color, c) => {
+                        if (color) colorMap[`${r},${c}`] = color;
+                    });
+                });
+                const rendered = renderLetter('custom', currentGrid, { colorMap });
                 previewContainer.appendChild(rendered);
                 if (typeof gsap !== 'undefined') {
                     gsap.fromTo("#preview-container .dot-wrapper svg",
@@ -237,7 +385,8 @@
             URL.revokeObjectURL(url);
         }
 
-        // Initialize core features immediately
+        // Initialize
+        initColorPalette();
         initEditor();
         updatePreview();
         refreshLetterButtons();
@@ -269,16 +418,32 @@
                     gridData[`row${index}`] = row;
                 });
 
+                const colorData = {};
+                currentColorGrid.forEach((row, index) => {
+                    colorData[`row${index}`] = row;
+                });
+
                 await setDoc(doc(db, "letters", name), {
                     rows: ROWS,
                     cols: COLS,
-                    gridData: gridData
+                    gridData: gridData,
+                    colorData: colorData
                 });
 
                 window.letters[name] = JSON.parse(JSON.stringify(currentGrid));
+
+                // Update window.letterColors
+                window.letterColors = window.letterColors || {};
+                const colorMap = {};
+                currentColorGrid.forEach((row, r) => {
+                    row.forEach((color, c) => {
+                        if (color) colorMap[`${r},${c}`] = color;
+                    });
+                });
+                window.letterColors[name] = colorMap;
+
                 refreshLetterButtons();
                 alert(`Letter "${name}" saved!`);
-                // Keep input value for further edits
             } catch (e) {
                 console.error("Error adding letter: ", e);
                 alert("Error saving letter. See console. (If running locally without a server, Firestore won't work)");
@@ -304,10 +469,9 @@
             try {
                 await deleteDoc(doc(db, "letters", name));
                 delete window.letters[name];
+                if (window.letterColors) delete window.letterColors[name];
                 refreshLetterButtons();
-
                 letterNameInput.value = '';
-                // Reset grid? Optional. Let's keep it but maybe clear selection.
                 alert(`Letter "${name}" deleted.`);
             } catch (e) {
                 console.error("Error deleting letter:", e);
@@ -318,6 +482,7 @@
         // Load letters from Firestore
         async function loadFromFirestore() {
             try {
+                window.letterColors = window.letterColors || {};
                 const querySnapshot = await getDocs(collection(db, "letters"));
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
@@ -329,6 +494,16 @@
                         window.letters[doc.id] = reconstructedGrid;
                     } else if (data.grid) {
                         window.letters[doc.id] = data.grid;
+                    }
+                    if (data.colorData) {
+                        const colorMap = {};
+                        for (let i = 0; i < data.rows; i++) {
+                            const row = data.colorData[`row${i}`] || [];
+                            row.forEach((color, c) => {
+                                if (color) colorMap[`${i},${c}`] = color;
+                            });
+                        }
+                        window.letterColors[doc.id] = colorMap;
                     }
                 });
                 refreshLetterButtons();
