@@ -11,6 +11,7 @@ window.initAnimations = initAnimations;
 console.log("Modules loaded and functions exposed to window.");
 
 window.letters = {};
+window.letterColors = {};
 let isFirstFetch = true;
 let resizeTimeout;
 
