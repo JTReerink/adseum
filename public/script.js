@@ -1,5 +1,5 @@
 import { renderLetter, renderText } from './modules/renderer.js';
-import { animateDots, initAnimations, initScrollAnimations } from './modules/animations.js';
+import { animateDots, initAnimations, initScrollAnimations, initNavScrollAnimation } from './modules/animations.js';
 import { listenToLetters } from './modules/database.js';
 
 // Expose functions to global scope for HTML/Firebase compatibility
@@ -23,23 +23,28 @@ const handleRender = () => {
     document.getElementById('about-heading').innerHTML = '';
     document.getElementById('projects-heading').innerHTML = '';
     document.getElementById('contact-heading').innerHTML = '';
+    document.getElementById('nav-logo').innerHTML = '';
 
     // Render text with dynamic scaling calculated in renderer.js
     renderText('logo-grid', 'ADseum');
     renderText('about-heading', 'About', { dotSize: 8, monochrome: true });
     renderText('projects-heading', 'Projects', { dotSize: 8, monochrome: true });
     renderText('contact-heading', 'Contact', { dotSize: 8, monochrome: true });
+    // Nav logo: small version, no entrance animation (shown by scroll trigger)
+    renderText('nav-logo', 'ADseum', { dotSize: 3 });
 
     if (isFirstFetch) {
         // First time running animations
         initAnimations('#logo-grid');
         initScrollAnimations();
+        initNavScrollAnimation();
         isFirstFetch = false;
     } else {
         // Update existing animations & scroll triggers on resize
         if (window.ScrollTrigger) {
             ScrollTrigger.getAll().forEach(t => t.kill());
             initScrollAnimations();
+            initNavScrollAnimation();
         }
         if (window.updateWiggleTargets) {
             window.updateWiggleTargets();

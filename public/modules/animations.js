@@ -141,9 +141,91 @@ export const animateDots = (container = document) => {
             const isMainLogo = container === document || container === '#logo-grid' || (parent && parent.id === 'hero');
             if (isMainLogo) {
                 window.isAnimationComplete = true; // Enable interaction main logo
+                const navLinks = document.querySelector('.nav-links');
+                if (navLinks) {
+                    navLinks.style.transition = 'opacity 0.6s ease';
+                    navLinks.style.opacity = '1';
+                }
+                // Refresh ScrollTrigger now that the viewport is stable and the
+                // logo is in its final resting position — fixes cold-start sizing issues
+                if (window.ScrollTrigger) ScrollTrigger.refresh();
             }
         }
     }, inkDots.length > 0 ? "-=1.5" : 0); // Overlap with ink animation only if ink dots exist
+};
+
+export const initNavScrollAnimation = () => {
+    const logoGrid = document.getElementById('logo-grid');
+    const navLogoEl = document.getElementById('nav-logo');
+    const navbar = document.getElementById('navbar');
+    const subtitle = document.querySelector('.subtitle-anim');
+
+    if (!logoGrid || !navLogoEl || !navbar) return;
+
+    // Clear any GSAP state from a previous run
+    gsap.set(logoGrid, { clearProps: 'all' });
+
+    // Reveal nav-logo dots; container stays hidden until hero exits viewport
+    gsap.set('#nav-logo .dot-wrapper svg', { opacity: 1, scale: 1, x: 0, y: 0 });
+    navLogoEl.style.opacity = '0';
+
+    // Measure logo's natural screen position, then lift it to position:fixed so it
+    // stays visible as the hero section scrolls away beneath it
+    const logoRect = logoGrid.getBoundingClientRect();
+    const navRect = navLogoEl.getBoundingClientRect();
+    const deltaX = navRect.left - logoRect.left;
+    const deltaY = navRect.top - logoRect.top;
+    const targetScale = navRect.height / logoRect.height;
+
+    gsap.set(logoGrid, {
+        position: 'fixed',
+        top: logoRect.top,
+        left: logoRect.left,
+        width: logoRect.width,
+        height: logoRect.height,
+        margin: 0,
+        zIndex: 51, // Above navbar so it appears to fly into position
+        transformOrigin: 'top left',
+    });
+
+    const tl = gsap.timeline({
+        scrollTrigger: {
+            trigger: '#hero',
+            start: 'top top',
+            end: 'bottom top', // Animation runs exactly as hero scrolls out (100vh)
+            scrub: 1,
+            onLeave: () => {
+                // Logo has landed at nav corner — swap to nav logo instantly
+                navLogoEl.style.opacity = '1';
+                gsap.set(logoGrid, { opacity: 0 });
+            },
+            onEnterBack: () => {
+                // User scrolled back into hero — restore hero logo
+                navLogoEl.style.opacity = '0';
+                gsap.set(logoGrid, { opacity: 1 });
+            },
+        }
+    });
+
+    // Logo physically flies from hero center to navbar corner
+    tl.to(logoGrid, {
+        duration: 1,
+        x: deltaX,
+        y: deltaY,
+        scale: targetScale,
+        ease: 'power2.inOut',
+    }, 0);
+
+    if (subtitle) {
+        tl.to(subtitle, { duration: 0.5, opacity: 0, y: -10, ease: 'power1.in' }, 0);
+    }
+    tl.to('.blob', { duration: 0.5, opacity: 0, ease: 'power1.in' }, 0);
+    tl.to(navbar, {
+        duration: 0.6,
+        backgroundColor: 'rgba(253,253,253,0.95)',
+        boxShadow: '0 1px 20px rgba(0,0,0,0.06)',
+        ease: 'power1.out',
+    }, 0.2);
 };
 
 export const initScrollAnimations = () => {
@@ -161,7 +243,7 @@ export const initScrollAnimations = () => {
 
         ScrollTrigger.create({
             trigger: section,
-            start: "top 85%",
+            start: "top bottom",
             once: true,
             invalidateOnRefresh: true, // Recalculate triggers naturally if height changes
             markers: false, // Set to true for debugging if needed
