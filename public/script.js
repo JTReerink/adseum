@@ -1,6 +1,6 @@
-import { renderLetter, renderText } from './modules/renderer.js';
-import { animateDots, initAnimations, initScrollAnimations, initNavScrollAnimation } from './modules/animations.js';
-import { listenToLetters } from './modules/database.js';
+import { renderLetter, renderText } from './modules/renderer.js?v=8';
+import { animateDots, initAnimations, initScrollAnimations, initNavScrollAnimation } from './modules/animations.js?v=8';
+import { listenToLetters } from './modules/database.js?v=8';
 
 // Expose functions to global scope for HTML/Firebase compatibility
 window.renderLetter = renderLetter;
@@ -24,7 +24,8 @@ const handleRender = () => {
     document.getElementById('about-heading').innerHTML = '';
     document.getElementById('projects-heading').innerHTML = '';
     document.getElementById('contact-heading').innerHTML = '';
-    document.getElementById('nav-logo').innerHTML = '';
+    const navLogoEl = document.getElementById('nav-logo');
+    if (navLogoEl) navLogoEl.innerHTML = '';
 
     // Render text with dynamic scaling calculated in renderer.js
     renderText('logo-grid', 'ADseum');
