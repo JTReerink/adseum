@@ -46,13 +46,15 @@ export const animateDots = (container = document) => {
         const initialCenterX = rect.left + (rect.width / 2);
         const initialCenterY = rect.top + (rect.height / 2);
 
-        const minCenterX = startSize / 2;
-        const maxCenterX = window.innerWidth - (startSize / 2);
-        const randomCenterX = rand(minCenterX, maxCenterX);
+        // Add 15% extra margin to account for SVG overflow:visible + ink path irregularity
+        const overflow = startSize * 0.15;
+        const minCenterX = startSize / 2 + overflow;
+        const maxCenterX = window.innerWidth - (startSize / 2) - overflow;
+        const randomCenterX = rand(minCenterX, Math.max(minCenterX, maxCenterX));
 
-        const minCenterY = startSize / 2;
-        const maxCenterY = window.innerHeight - (startSize / 2);
-        const randomCenterY = rand(minCenterY, maxCenterY);
+        const minCenterY = startSize / 2 + overflow;
+        const maxCenterY = window.innerHeight - (startSize / 2) - overflow;
+        const randomCenterY = rand(minCenterY, Math.max(minCenterY, maxCenterY));
 
         const startX = randomCenterX - initialCenterX;
         const startY = randomCenterY - initialCenterY;
@@ -141,6 +143,17 @@ export const animateDots = (container = document) => {
             const isMainLogo = container === document || container === '#logo-grid' || (parent && parent.id === 'hero');
             if (isMainLogo) {
                 window.isAnimationComplete = true; // Enable interaction main logo
+                const navLinks = document.querySelector('.nav-links');
+                if (navLinks) {
+                    navLinks.style.transition = 'opacity 0.6s ease';
+                    navLinks.style.opacity = '1';
+                }
+                const subtitle = document.querySelector('.subtitle-anim');
+                if (subtitle) {
+                    subtitle.style.transition = 'opacity 0.6s ease';
+                    subtitle.style.opacity = '1';
+                }
+                if (window.ScrollTrigger) ScrollTrigger.refresh();
             }
         }
     }, inkDots.length > 0 ? "-=1.5" : 0); // Overlap with ink animation only if ink dots exist
@@ -176,12 +189,7 @@ export const initScrollAnimations = () => {
 export const initAnimations = (containerSelector) => {
     animateDots(containerSelector);
 
-    // 2. Subtitle entrance
-    gsap.to(".subtitle-anim", {
-        opacity: 1,
-        delay: 1.5,
-        duration: 1
-    });
+    // 2. Subtitle entrance — handled in animateDots onComplete (same as nav links)
 
     // 3. Background Breathing
     gsap.to(".blob", {
@@ -326,4 +334,79 @@ export const initAnimations = (containerSelector) => {
             });
         });
     }
+};
+
+export const initNavScrollAnimation = () => {
+    const logoGrid = document.getElementById('logo-grid');
+    const navLogoEl = document.getElementById('nav-logo');
+    const navbar = document.getElementById('navbar');
+    const subtitle = document.querySelector('.subtitle-anim');
+
+    if (!logoGrid || !navLogoEl || !navbar) return;
+
+    gsap.set(logoGrid, { clearProps: 'all' });
+    gsap.set('#nav-logo .dot-wrapper svg', { opacity: 1, scale: 1, x: 0, y: 0 });
+    navLogoEl.style.opacity = '0';
+
+    const logoRect = logoGrid.getBoundingClientRect();
+    const navRect = navLogoEl.getBoundingClientRect();
+    const deltaX = navRect.left - logoRect.left;
+    const deltaY = navRect.top - logoRect.top;
+    const targetScale = navRect.height / logoRect.height;
+
+    gsap.set(logoGrid, {
+        position: 'fixed',
+        top: logoRect.top,
+        left: logoRect.left,
+        width: logoRect.width,
+        height: logoRect.height,
+        margin: 0,
+        zIndex: 51,
+        transformOrigin: 'top left',
+    });
+
+    const tl = gsap.timeline({
+        scrollTrigger: {
+            trigger: '#hero',
+            start: 'top top',
+            end: 'bottom top',
+            scrub: 1,
+            onLeave: () => {
+                navLogoEl.style.opacity = '1';
+                gsap.set(logoGrid, { opacity: 0 });
+            },
+            onEnterBack: () => {
+                navLogoEl.style.opacity = '0';
+                gsap.set(logoGrid, { opacity: 1 });
+            },
+        }
+    });
+
+    tl.to(logoGrid, { duration: 1, x: deltaX, y: deltaY, scale: targetScale, ease: 'power2.inOut' }, 0);
+    tl.to('.blob', { duration: 0.5, opacity: 0, ease: 'power1.in' }, 0);
+
+    // Separate ScrollTrigger for subtitle so it doesn't conflict with the entrance fade-in
+    if (subtitle) {
+        let subtitleRevealed = false;
+        // Watch for the entrance animation to finish
+        const checkRevealed = () => { subtitleRevealed = parseFloat(getComputedStyle(subtitle).opacity) > 0.5; };
+
+        ScrollTrigger.create({
+            trigger: '#hero',
+            start: 'top top',
+            end: '30% top',
+            scrub: true,
+            onUpdate: (self) => {
+                if (!subtitleRevealed) checkRevealed();
+                if (!subtitleRevealed || self.progress === 0) return;
+                gsap.set(subtitle, { opacity: 1 - self.progress, y: -10 * self.progress });
+            },
+        });
+    }
+    tl.to(navbar, {
+        duration: 0.6,
+        backgroundColor: 'rgba(253,253,253,0.95)',
+        boxShadow: '0 1px 20px rgba(0,0,0,0.06)',
+        ease: 'power1.out',
+    }, 0.2);
 };
