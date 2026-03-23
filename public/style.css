@@ -1,7 +1,404 @@
-/* Styles are primarily handled by Tailwind logic in index.html for this iteration */
-/* Keeping file for future custom styles if needed */
+/* =============================================
+   FONT FACES
+   ============================================= */
+
+@font-face {
+    font-family: 'DIN Alternate';
+    src: url('./fonts/DIN Alternate Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'DM Mono';
+    src: url('./fonts/DMMono-Medium.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'DM Sans';
+    src: url('./fonts/DMSans_18pt-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Minion Pro';
+    src: url('./fonts/MinionPro-Regular.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* =============================================
+   BASE
+   ============================================= */
 
 body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-family: 'DM Sans', sans-serif;
+}
+
+a {
+    transition: color 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+}
+
+/* =============================================
+   NAVBAR
+   ============================================= */
+
+#navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    padding: 0 2rem;
+    height: 64px;
+    background: transparent;
+    transition: background 0.4s ease, backdrop-filter 0.4s ease, box-shadow 0.4s ease;
+}
+
+#navbar.scrolled {
+    background: rgba(253, 253, 253, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+#nav-logo {
+    flex-shrink: 0;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-8px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+#nav-logo.visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+#nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-left: auto;
+    list-style: none;
+    padding: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.nav-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 18px;
+    color: #1a1a1a;
+    text-decoration: none;
+}
+
+.nav-text-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+.nav-dot-label {
+    display: inline-flex;
+    align-items: center;
+    min-height: 16px;
+}
+
+.nav-link:hover {
+    opacity: 0.5;
+}
+
+/* =============================================
+   HERO AND SECTIONS
+   ============================================= */
+
+.subtitle-anim {
+    font-family: 'DIN Alternate', 'DM Mono', monospace;
+    font-weight: bold;
+}
+
+.hero-rich-text {
+    max-width: min(90vw, 780px);
+}
+
+.cms-section-body {
+    width: 100%;
+}
+
+.cms-dot-heading {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.dot-fallback-heading {
+    font-family: 'DIN Alternate', 'DM Mono', monospace;
+    font-size: clamp(2.5rem, 7vw, 4.5rem);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #111;
+}
+
+/* =============================================
+   RICH CONTENT
+   ============================================= */
+
+.rich-content {
+    font-family: 'DM Sans', sans-serif;
+    color: #3a3a3a;
+}
+
+.rich-content > *:first-child {
+    margin-top: 0;
+}
+
+.rich-content > *:last-child {
+    margin-bottom: 0;
+}
+
+.rich-content p,
+.rich-content ul,
+.rich-content ol,
+.rich-content blockquote,
+.rich-content h1,
+.rich-content h2,
+.rich-content h3,
+.rich-content h4 {
+    margin: 0 0 1rem;
+}
+
+.rich-content h1,
+.rich-content h2,
+.rich-content h3,
+.rich-content h4 {
+    font-family: 'DIN Alternate', 'DM Sans', sans-serif;
+    color: #111;
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.rich-content h1 {
+    font-size: clamp(2.4rem, 5vw, 3.8rem);
+}
+
+.rich-content h2 {
+    font-size: clamp(1.8rem, 3vw, 2.6rem);
+}
+
+.rich-content h3 {
+    font-size: clamp(1.4rem, 2vw, 2rem);
+}
+
+.rich-content p,
+.rich-content li {
+    font-size: 1.125rem;
+    line-height: 1.8;
+}
+
+.rich-content ul,
+.rich-content ol {
+    padding-left: 1.3em;
+    text-align: left;
+}
+
+.rich-content blockquote {
+    border-left: 3px solid rgba(17, 24, 39, 0.15);
+    padding-left: 1rem;
+    color: #4b5563;
+    font-style: italic;
+    text-align: left;
+}
+
+.rich-content a {
+    color: #0f172a;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.16em;
+}
+
+.rich-content strong {
+    font-weight: 700;
+    color: #111827;
+}
+
+.rich-content em {
+    font-style: italic;
+}
+
+/* =============================================
+   CMS UI
+   ============================================= */
+
+body.admin-pending #auth-gate,
+body.admin-pending #access-denied,
+body.admin-pending #admin-app {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.cms-shell-hidden {
+    display: none !important;
+}
+
+.editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.editor-toolbar button {
+    border: 1px solid #cbd5e1;
+    background: white;
+    color: #0f172a;
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.editor-toolbar button:hover {
+    background: #f1f5f9;
+}
+
+.rich-editor-surface {
+    min-height: 180px;
+    padding: 1rem;
+    outline: none;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: #0f172a;
+}
+
+.rich-editor-surface:empty::before {
+    content: attr(data-placeholder);
+    color: #94a3b8;
+}
+
+.glyph-status {
+    min-height: 1.4rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.glyph-status-ok {
+    color: #059669;
+}
+
+.glyph-status-error {
+    color: #dc2626;
+}
+
+.cms-input,
+.cms-textarea {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    background: white;
+    padding: 0.85rem 1rem;
+    font-size: 0.95rem;
+    color: #0f172a;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cms-input:focus,
+.cms-textarea:focus,
+.rich-editor-wrap:focus-within {
+    border-color: #64748b;
+    box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.12);
+}
+
+.rich-editor-wrap {
+    border: 1px solid #e2e8f0;
+    border-radius: 1.5rem;
+    overflow: hidden;
+    background: white;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cms-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.92rem;
+    color: #334155;
+}
+
+.cms-section-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 1.75rem;
+    background: white;
+    padding: 1.25rem;
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+
+@media (max-width: 900px) {
+    #navbar {
+        padding: 0 1rem;
+    }
+
+    #nav-links {
+        gap: 1rem;
+    }
+
+    .nav-text-label {
+        font-size: 0.68rem;
+    }
+}
+
+@media (max-width: 640px) {
+    #navbar {
+        height: auto;
+        min-height: 64px;
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    #nav-links {
+        width: 100%;
+        justify-content: center;
+        margin-left: 0;
+        flex-wrap: wrap;
+        gap: 0.8rem 1.2rem;
+    }
+
+    .rich-content p,
+    .rich-content li {
+        font-size: 1rem;
+    }
+
+    .editor-toolbar {
+        gap: 0.35rem;
+    }
+
+    .editor-toolbar button {
+        font-size: 0.68rem;
+        padding: 0.35rem 0.6rem;
+    }
 }

@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Firebase Hosting",
+      "runtimeExecutable": "firebase",
+      "runtimeArgs": ["serve", "--only", "hosting"],
+      "port": 5000
+    },
+    {
+      "name": "Firebase Emulators (Hosting + Firestore)",
+      "runtimeExecutable": "firebase",
+      "runtimeArgs": ["emulators:start", "--only", "hosting,firestore"],
+      "port": 5000
+    }
+  ]
+}
