@@ -13,19 +13,47 @@
             height: 30px;
             border: 1px solid #e5e7eb;
             cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .cell.active {
-            background-color: #000;
+            transition: background-color 0.1s;
+            box-sizing: border-box;
         }
 
         .cell:hover {
-            background-color: #f3f4f6;
+            filter: brightness(0.85);
         }
 
-        .cell.active:hover {
-            background-color: #333;
+        .color-swatch,
+        .eraser-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            transition: transform 0.1s;
+        }
+
+        .color-swatch {
+            border: 2px solid transparent;
+        }
+
+        .eraser-swatch {
+            border: 2px solid #d1d5db;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .color-swatch:hover,
+        .eraser-swatch:hover {
+            transform: scale(1.15);
+        }
+
+        .color-swatch.selected,
+        .eraser-swatch.selected {
+            border: 3px solid #4f46e5;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #4f46e5;
         }
     </style>
 </head>
@@ -72,13 +100,19 @@
                 </div>
             </div>
             <button onclick="updateGridSize()"
-                class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-1 rounded text-xs transition">Update grid
-                size</button>
+                class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-1 rounded text-xs transition">Update grid size</button>
+        </div>
+
+        <div>
+            <label class="block text-sm font-bold mb-2">Dot Color:</label>
+            <p class="text-xs text-gray-500 mb-2">Pick a color, then click cells to paint dots. Select the eraser to draw default black dots.</p>
+            <div class="flex flex-wrap gap-2 items-center" id="color-palette"></div>
+            <p class="text-xs text-gray-400 mt-2">Selected: <span id="selected-color-label" class="font-bold">None (black)</span></p>
         </div>
 
         <div>
             <label class="block text-sm font-bold mb-2">Usage:</label>
-            <p class="text-xs text-gray-600">Click cells to toggle dots on and off.</p>
+            <p class="text-xs text-gray-600">Click cells to toggle dots on or off. With a color selected, clicking an active dot changes its color.</p>
         </div>
 
         <div class="mt-auto border-t pt-4">

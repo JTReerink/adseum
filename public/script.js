@@ -1,5 +1,5 @@
 import { renderText } from './modules/renderer.js';
-import { animateDots, initAnimations, initScrollAnimations } from './modules/animations.js';
+import { animateDots, initAnimations, initScrollAnimations, initNavScrollAnimation } from './modules/animations.js';
 import {
     DEFAULT_SITE_CONTENT,
     listenToLetters,
@@ -13,6 +13,7 @@ window.animateDots = animateDots;
 window.initAnimations = initAnimations;
 
 window.letters = {};
+window.letterColors = {};
 window.siteContent = DEFAULT_SITE_CONTENT;
 
 let isFirstFetch = true;
@@ -146,8 +147,8 @@ function renderStaticContent() {
 
 function renderDynamicDotContent() {
     const content = getSiteContent();
-
     const logoGrid = document.getElementById('logo-grid');
+
     if (logoGrid) {
         logoGrid.innerHTML = '';
         renderText('logo-grid', 'ADseum');
@@ -155,7 +156,7 @@ function renderDynamicDotContent() {
 
     if (navLogo) {
         navLogo.innerHTML = '';
-        renderText('nav-logo', 'ADseum', { dotSize: 8, monochrome: false });
+        renderText('nav-logo', 'ADseum', { dotSize: 3 });
     }
 
     content.sections.forEach((section) => {
@@ -193,11 +194,13 @@ function handleRender() {
     if (isFirstFetch) {
         initAnimations('#logo-grid');
         initScrollAnimations();
+        initNavScrollAnimation();
         isFirstFetch = false;
     } else {
         if (window.ScrollTrigger) {
             ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
             initScrollAnimations();
+            initNavScrollAnimation();
         }
 
         if (window.updateWiggleTargets) {
@@ -209,16 +212,7 @@ function handleRender() {
 }
 
 function initNavbar() {
-    const hero = document.getElementById('hero');
-    if (!navbar || !navLogo || !hero) return;
-
-    const observer = new IntersectionObserver(([entry]) => {
-        const scrolledPast = !entry.isIntersecting;
-        navbar.classList.toggle('scrolled', scrolledPast);
-        navLogo.classList.toggle('visible', scrolledPast);
-    }, { threshold: 0.1 });
-
-    observer.observe(hero);
+    if (!navLinks || !navbar) return;
 
     navLinks.addEventListener('click', (event) => {
         const link = event.target.closest('a[href^="#"]');

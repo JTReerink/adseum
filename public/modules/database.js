@@ -131,9 +131,11 @@ export function validateDotText(text = '', lettersMap = {}) {
 export function listenToLetters(callback) {
     return onSnapshot(collection(db, 'letters'), (querySnapshot) => {
         window.letters = {};
+        window.letterColors = {};
 
         querySnapshot.forEach((snapshotDoc) => {
             const data = snapshotDoc.data();
+
             if (data.gridData) {
                 const reconstructedGrid = [];
                 for (let index = 0; index < data.rows; index += 1) {
@@ -143,6 +145,19 @@ export function listenToLetters(callback) {
             } else if (data.grid) {
                 window.letters[snapshotDoc.id] = data.grid;
             }
+
+            const colorMap = {};
+            if (data.colorData) {
+                for (let rowIndex = 0; rowIndex < data.rows; rowIndex += 1) {
+                    const row = data.colorData[`row${rowIndex}`] || [];
+                    row.forEach((color, colIndex) => {
+                        if (color) {
+                            colorMap[`${rowIndex},${colIndex}`] = color;
+                        }
+                    });
+                }
+            }
+            window.letterColors[snapshotDoc.id] = colorMap;
         });
 
         if (callback) {
