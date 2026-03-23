@@ -22,7 +22,8 @@
         }
 
         .color-swatch,
-        .eraser-swatch {
+        .eraser-swatch,
+        .add-color-swatch {
             width: 28px;
             height: 28px;
             border-radius: 50%;
@@ -45,8 +46,20 @@
             font-size: 14px;
         }
 
+        .add-color-swatch {
+            border: 2px dashed #94a3b8;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #475569;
+            font-weight: bold;
+        }
+
         .color-swatch:hover,
-        .eraser-swatch:hover {
+        .eraser-swatch:hover,
+        .add-color-swatch:hover {
             transform: scale(1.15);
         }
 
@@ -85,6 +98,12 @@
         <div>
             <label class="block text-sm font-bold mb-2">Load Existing:</label>
             <div class="flex flex-wrap gap-2" id="letter-buttons"></div>
+            <div id="new-letter-row" class="hidden mt-3 flex gap-2">
+                <input type="text" id="new-letter-input" placeholder="Character" maxlength="1" class="flex-1 border p-2 rounded text-sm">
+                <button id="cancel-new-letter-button" type="button"
+                    class="rounded bg-gray-200 px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-gray-800 transition hover:bg-gray-300">Cancel</button>
+            </div>
+            <p id="selected-letter-status" class="mt-2 text-xs text-gray-500">Select a letter to edit, or add a new one.</p>
         </div>
 
         <div>
@@ -105,9 +124,11 @@
 
         <div>
             <label class="block text-sm font-bold mb-2">Dot Color:</label>
-            <p class="text-xs text-gray-500 mb-2">Pick a color, then click cells to paint dots. Select the eraser to draw default black dots.</p>
+            <p class="text-xs text-gray-500 mb-2">Pick one of the predefined colors, then click cells to paint dots. Select the eraser to draw default black dots.</p>
             <div class="flex flex-wrap gap-2 items-center" id="color-palette"></div>
             <p class="text-xs text-gray-400 mt-2">Selected: <span id="selected-color-label" class="font-bold">None (black)</span></p>
+            <p id="palette-notice" class="text-xs text-gray-400 mt-2">Use the + circle to add a new predefined color for the live website.</p>
+            <input type="color" id="palette-color-input" value="#FF7000" class="hidden">
         </div>
 
         <div>
@@ -116,9 +137,7 @@
         </div>
 
         <div class="mt-auto border-t pt-4">
-            <label class="block text-sm font-bold mb-2">Add to Collection:</label>
-            <input type="text" id="letter-name" placeholder="Letter Name (e.g. F)"
-                class="w-full border p-2 rounded text-sm mb-2" maxlength="1">
+            <label class="block text-sm font-bold mb-2">Save Letter:</label>
             <div class="flex gap-2 mb-2">
                 <button id="save-button" onclick="addToAlphabet()"
                     class="flex-1 bg-black text-white py-2 rounded hover:bg-gray-800 transition">Save / Update</button>
@@ -147,16 +166,20 @@
         </div>
     </div>
 
-    <div class="flex-1 flex flex-col items-center justify-center bg-gray-50 p-8 relative">
-        <div class="mb-12">
-            <div class="text-center mb-2 font-bold text-gray-400">EDITOR</div>
-            <div id="editor-grid" class="grid bg-white border shadow-sm p-4 gap-1"></div>
-        </div>
+    <div class="flex-1 bg-gray-50 p-8 overflow-auto">
+        <div class="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] items-start">
+            <div class="rounded-2xl border bg-white p-6 shadow-sm">
+                <div class="text-center mb-4 font-bold text-gray-400">EDITOR</div>
+                <div class="overflow-auto">
+                    <div id="editor-grid" class="grid w-max mx-auto bg-white border shadow-sm p-4 gap-1"></div>
+                </div>
+            </div>
 
-        <div>
-            <div class="text-center mb-2 font-bold text-gray-400">PREVIEW</div>
-            <div id="preview-container"
-                class="bg-white border p-8 shadow-sm rounded-lg min-h-[150px] flex items-center justify-center"></div>
+            <div class="rounded-2xl border bg-white p-6 shadow-sm">
+                <div class="text-center mb-4 font-bold text-gray-400">PREVIEW</div>
+                <div id="preview-container"
+                    class="min-h-[220px] flex items-center justify-center overflow-auto"></div>
+            </div>
         </div>
     </div>
 

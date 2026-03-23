@@ -1,4 +1,5 @@
-import { DOT_SIZE, DOT_SPACING, LETTER_SPACING } from './config.js';
+import { DEFAULT_DOT_PALETTE, DOT_SIZE, DOT_SPACING, LETTER_SPACING } from './config.js';
+import { normalizeHexColor } from './database.js';
 import { createDot } from './dot.js';
 
 export const renderLetter = (char, grid, options = {}) => {
@@ -8,6 +9,7 @@ export const renderLetter = (char, grid, options = {}) => {
     // Scale the intra-letter dot gap exactly proportionally to the downscaled dotSize
     const gap = options.gap !== undefined ? options.gap : (DOT_SPACING * sizeRatio);
     const colorMap = options.colorMap || {};
+    const allowedPalette = new Set(Array.isArray(window.dotPalette) && window.dotPalette.length > 0 ? window.dotPalette : DEFAULT_DOT_PALETTE);
 
     const letterCol = document.createElement('div');
     letterCol.className = 'grid';
@@ -21,9 +23,10 @@ export const renderLetter = (char, grid, options = {}) => {
             if (cell === 1) {
                 const key = `${rowIndex},${colIndex}`;
                 let color = 'black';
+                const mappedColor = normalizeHexColor(colorMap[key] || '');
 
-                if (!options.monochrome && colorMap[key]) {
-                    color = colorMap[key];
+                if (!options.monochrome && mappedColor && allowedPalette.has(mappedColor)) {
+                    color = mappedColor;
                 }
 
                 const dotWrapper = document.createElement('div');

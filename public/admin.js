@@ -420,6 +420,7 @@ saveContentButton.addEventListener('click', async () => {
             titleUseDots: Boolean(section.titleUseDots),
             bodyHtml: sanitizeRichHtml(section.bodyHtml)
         })),
+        dotPalette: siteContent.dotPalette || DEFAULT_SITE_CONTENT.dotPalette,
         updatedAt: serverTimestamp(),
         updatedBy: currentAccess.email
     };

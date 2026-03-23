@@ -1,4 +1,5 @@
 import { db } from '../firebase-config.js';
+import { DEFAULT_DOT_PALETTE } from './config.js';
 import {
     collection,
     doc,
@@ -11,6 +12,37 @@ const DEFAULT_SECTION_BODIES = {
     projects: '<p>Placeholder for Projects overview. Highlighting past, present, and future exhibitions.</p>',
     contact: '<p>Placeholder for Contact information. Reach out to collaborate with us.</p>'
 };
+
+export function normalizeHexColor(value = '') {
+    const trimmed = value.trim();
+    const match = trimmed.match(/^#([0-9a-f]{6})$/i);
+    return match ? `#${match[1].toUpperCase()}` : null;
+}
+
+export function normalizeDotPalette(values = []) {
+    const normalized = [];
+    const seen = new Set();
+    const source = Array.isArray(values) ? values : [];
+
+    source.forEach((value) => {
+        const color = normalizeHexColor(value);
+        if (color && !seen.has(color)) {
+            seen.add(color);
+            normalized.push(color);
+        }
+    });
+
+    return normalized.length > 0 ? normalized : [...DEFAULT_DOT_PALETTE];
+}
+
+export function isPaletteColorAllowed(color, palette = DEFAULT_DOT_PALETTE) {
+    const normalizedColor = normalizeHexColor(color);
+    if (!normalizedColor) {
+        return false;
+    }
+
+    return normalizeDotPalette(palette).includes(normalizedColor);
+}
 
 export function slugify(value = '') {
     return value
@@ -91,7 +123,8 @@ export const DEFAULT_SITE_CONTENT = {
     hero: {
         subtitleHtml: '<p>Empowering Queer Art</p>'
     },
-    sections: convertLegacySections()
+    sections: convertLegacySections(),
+    dotPalette: [...DEFAULT_DOT_PALETTE]
 };
 
 export function normalizeSiteContent(data = {}) {
@@ -106,7 +139,8 @@ export function normalizeSiteContent(data = {}) {
                 || (data.hero?.subtitle ? `<p>${escapeHtml(data.hero.subtitle)}</p>` : DEFAULT_SITE_CONTENT.hero.subtitleHtml)
             )
         },
-        sections: sections.length > 0 ? sections : DEFAULT_SITE_CONTENT.sections.map((section) => createSection(section))
+        sections: sections.length > 0 ? sections : DEFAULT_SITE_CONTENT.sections.map((section) => createSection(section)),
+        dotPalette: normalizeDotPalette(data.dotPalette)
     };
 }
 

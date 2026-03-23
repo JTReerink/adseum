@@ -44,6 +44,10 @@ body {
     font-family: 'DM Sans', sans-serif;
 }
 
+body.mobile-menu-open {
+    overflow: hidden;
+}
+
 a {
     transition: color 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
 }
@@ -96,6 +100,81 @@ a {
     padding: 0;
     margin-top: 0;
     margin-bottom: 0;
+}
+
+.nav-hamburger {
+    display: none;
+    margin-left: auto;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 5px;
+    z-index: 110;
+}
+
+.nav-hamburger-line {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: #1a1a1a;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform-origin: center;
+}
+
+.nav-hamburger.is-open .nav-hamburger-line:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.nav-hamburger.is-open .nav-hamburger-line:nth-child(2) {
+    opacity: 0;
+}
+
+.nav-hamburger.is-open .nav-hamburger-line:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+.mobile-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.mobile-menu.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.mobile-nav-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.5rem;
+}
+
+.mobile-menu-link {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.4rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: #1a1a1a;
 }
 
 .nav-link {
@@ -370,24 +449,23 @@ body.admin-pending #admin-app {
     }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
     #navbar {
-        height: auto;
-        min-height: 64px;
-        padding-top: 0.75rem;
-        padding-bottom: 0.75rem;
-        flex-wrap: wrap;
-        gap: 0.75rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 
     #nav-links {
-        width: 100%;
-        justify-content: center;
-        margin-left: 0;
-        flex-wrap: wrap;
-        gap: 0.8rem 1.2rem;
+        display: none;
     }
 
+    .nav-hamburger {
+        display: inline-flex;
+    }
+
+}
+
+@media (max-width: 640px) {
     .rich-content p,
     .rich-content li {
         font-size: 1rem;
