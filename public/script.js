@@ -11,6 +11,7 @@ window.initAnimations = initAnimations;
 console.log("Modules loaded and functions exposed to window.");
 
 window.letters = {};
+window.letterColors = {};
 let isFirstFetch = true;
 let resizeTimeout;
 
@@ -31,6 +32,7 @@ const handleRender = () => {
     renderText('about-heading', 'About', { dotSize: 8, monochrome: true });
     renderText('projects-heading', 'Projects', { dotSize: 8, monochrome: true });
     renderText('contact-heading', 'Contact', { dotSize: 8, monochrome: true });
+    // Nav logo: small version, no entrance animation (shown by scroll trigger)
     renderText('nav-logo', 'ADseum', { dotSize: 3 });
 
     if (isFirstFetch) {

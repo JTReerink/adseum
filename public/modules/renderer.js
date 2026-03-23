@@ -1,4 +1,4 @@
-import { DOT_SIZE, DOT_SPACING, LETTER_SPACING, palette, rand } from './config.js';
+import { DOT_SIZE, DOT_SPACING, LETTER_SPACING } from './config.js';
 import { createDot } from './dot.js';
 
 export const renderLetter = (char, grid, options = {}) => {
@@ -7,7 +7,7 @@ export const renderLetter = (char, grid, options = {}) => {
 
     // Scale the intra-letter dot gap exactly proportionally to the downscaled dotSize
     const gap = options.gap !== undefined ? options.gap : (DOT_SPACING * sizeRatio);
-    const colors = options.colors || palette;
+    const colorMap = options.colorMap || {};
 
     const letterCol = document.createElement('div');
     letterCol.className = 'grid';
@@ -16,41 +16,14 @@ export const renderLetter = (char, grid, options = {}) => {
     // Apply gap but ensure it can drop to sub-pixel values (don't floor it if we need tight packing)
     letterCol.style.gap = `${gap}px`;
 
-    // 1. Identify valid dot positions associated with this letter
-    const validPositions = [];
-    grid.forEach((row, r) => {
-        row.forEach((cell, c) => {
-            if (cell === 1) validPositions.push({ r, c });
-        });
-    });
-
-    // 2. determine how many colored dots (1 to 3, but not more than total dots)
-    const numColored = Math.floor(rand(1, 4)); // 1, 2, or 3
-    const count = Math.min(numColored, validPositions.length);
-
-    // 3. Randomly select unique positions
-    const coloredIndices = new Set();
-    while (coloredIndices.size < count) {
-        const idx = Math.floor(Math.random() * validPositions.length);
-        coloredIndices.add(idx);
-    }
-
-    // Convert to a quick lookup string "r,c"
-    const coloredPosStrings = new Set();
-    coloredIndices.forEach(idx => {
-        const p = validPositions[idx];
-        coloredPosStrings.add(`${p.r},${p.c}`);
-    });
-
     grid.forEach((row, rowIndex) => {
         row.forEach((cell, colIndex) => {
             if (cell === 1) {
-                // Check if this position was selected for color
                 const key = `${rowIndex},${colIndex}`;
                 let color = 'black';
 
-                if (coloredPosStrings.has(key) && !options.monochrome) {
-                    color = colors[Math.floor(Math.random() * colors.length)];
+                if (!options.monochrome && colorMap[key]) {
+                    color = colorMap[key];
                 }
 
                 const dotWrapper = document.createElement('div');
@@ -150,7 +123,11 @@ export const renderText = (containerId, text, options = {}) => {
         word.split('').forEach(char => {
             const key = Object.keys(window.letters || {}).find(k => k === char) || char;
             if (window.letters && window.letters[key]) {
-                wordContainer.appendChild(renderLetter(key, window.letters[key], finalOptions));
+                const charOptions = {
+                    ...finalOptions,
+                    colorMap: (window.letterColors && window.letterColors[key]) || {}
+                };
+                wordContainer.appendChild(renderLetter(key, window.letters[key], charOptions));
             }
         });
 
