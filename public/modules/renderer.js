@@ -87,12 +87,17 @@ export const renderText = (containerId, text, options = {}) => {
             }
         });
 
-        const containerWidth = container.offsetWidth || window.innerWidth;
+        // Use inner content width (excludes horizontal padding) for accurate sizing
+        const style = window.getComputedStyle(container);
+        const paddingX = parseFloat(style.paddingLeft || '0') + parseFloat(style.paddingRight || '0');
+        const containerWidth = container.offsetWidth
+            ? container.offsetWidth - paddingX
+            : window.innerWidth;
 
         if (totalColumns > 0) {
-            // Calculate available width minus all the gaps between letters and some padding
+            // Calculate available width minus all the gaps between letters and a small safety margin
             const numGaps = validChars.length > 1 ? validChars.length - 1 : 0;
-            const availableWidth = containerWidth - (numGaps * letterGap) - 40;
+            const availableWidth = containerWidth - (numGaps * letterGap) - 8;
 
             // Calculate the ideal size of a single dot
             // We know each dot essentially takes up 1 part dotSize + some proportional gap
@@ -117,6 +122,8 @@ export const renderText = (containerId, text, options = {}) => {
         const wordContainer = document.createElement('div');
         wordContainer.style.display = 'flex';
         wordContainer.style.flexWrap = 'nowrap';
+        wordContainer.style.justifyContent = 'center';
+        wordContainer.style.width = '100%';
         wordContainer.style.gap = `${letterGap}px`;
 
         word.split('').forEach(char => {
