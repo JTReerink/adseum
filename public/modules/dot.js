@@ -65,8 +65,10 @@ export const createDot = (color = 'black', options = {}) => {
     }
 
     const dotSize = options.dotSize || DOT_SIZE;
-    const sizeRatio = dotSize / DOT_SIZE;
-    const stdSize = dotSize + sizeRatio * rand(-2, 3);
+    const visualScale = options.visualScale ?? 1;
+    const renderedDotSize = dotSize * visualScale;
+    const sizeRatio = renderedDotSize / DOT_SIZE;
+    const stdSize = renderedDotSize + sizeRatio * rand(-2, 3);
     const inkSize = sizeRatio * rand(85, 125); // Adjusted to scale with dotSize proportionally
 
     // Choose initial size

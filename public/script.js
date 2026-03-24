@@ -165,12 +165,12 @@ function renderDynamicDotContent() {
 
     if (logoGrid) {
         logoGrid.innerHTML = '';
-        renderText('logo-grid', 'ADseum');
+        renderText('logo-grid', 'ADseum', { visualScale: 1.35, gap: 2 });
     }
 
     if (navLogo) {
         navLogo.innerHTML = '';
-        renderText('nav-logo', 'ADseum', { dotSize: 3 });
+        renderText('nav-logo', 'ADseum', { dotSize: 3, visualScale: 1.15 });
     }
 
     content.sections.forEach((section) => {
@@ -178,7 +178,7 @@ function renderDynamicDotContent() {
             renderDotField(
                 document.getElementById(`nav-label-${section.id}`),
                 section.navLabel,
-                { dotSize: 4, monochrome: true, letterSpacing: 4, gap: 1.5 },
+                { dotSize: 4, monochrome: true, letterSpacing: 4, gap: 1.5, visualScale: 1.3 },
                 'span',
                 'nav-text-label'
             );
@@ -188,7 +188,7 @@ function renderDynamicDotContent() {
             renderDotField(
                 document.getElementById(`section-title-${section.id}`),
                 section.title,
-                { dotSize: 8, monochrome: true },
+                { dotSize: 8, monochrome: true, visualScale: 1.3 },
                 'h2',
                 'dot-fallback-heading text-center'
             );

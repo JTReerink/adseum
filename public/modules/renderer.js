@@ -42,7 +42,10 @@ export const renderLetter = (char, grid, options = {}) => {
                 }
                 dotWrapper.style.position = 'relative'; // Ensure z-index works
 
-                const dot = createDot(color, { dotSize });
+                const dot = createDot(color, {
+                    dotSize,
+                    visualScale: options.visualScale
+                });
                 dotWrapper.appendChild(dot);
                 letterCol.appendChild(dotWrapper);
             } else {

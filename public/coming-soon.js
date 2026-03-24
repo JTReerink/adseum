@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) return;
 
         container.innerHTML = '';
-        renderText('logo-grid', 'ADseum');
+        renderText('logo-grid', 'ADseum', { visualScale: 1.35, gap: 2 });
 
         if (!initialized) {
             initialized = true;
