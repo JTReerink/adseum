@@ -1,5 +1,83 @@
 import { WIGGLE_DIST, rand } from './config.js';
 
+const getHeroScrollProgress = () => {
+    const hero = document.getElementById('hero');
+    if (!hero) return 0;
+
+    return gsap.utils.clamp(0, 1, -hero.getBoundingClientRect().top / Math.max(hero.offsetHeight, 1));
+};
+
+const syncHeroSubtitle = (subtitle, progress = 0) => {
+    if (!subtitle) return;
+
+    if (!document.body.classList.contains('intro-complete')) {
+        gsap.set(subtitle, { opacity: 0, y: 16, overwrite: 'auto' });
+        return;
+    }
+
+    const fadeProgress = gsap.utils.clamp(0, 1, progress / 0.35);
+    gsap.set(subtitle, {
+        opacity: 1 - fadeProgress,
+        y: -10 * fadeProgress,
+        overwrite: 'auto'
+    });
+};
+
+const revealIntroChrome = () => {
+    if (document.body.classList.contains('intro-complete')) return;
+
+    document.body.classList.add('intro-complete');
+
+    const subtitle = document.querySelector('.subtitle-anim');
+    const navLinks = document.getElementById('nav-links');
+    const hamburger = document.getElementById('hamburger-btn');
+
+    const tl = gsap.timeline({
+        defaults: {
+            ease: 'power2.out'
+        }
+    });
+
+    if (navLinks) {
+        tl.fromTo(navLinks, {
+            opacity: 0,
+            y: -12
+        }, {
+            opacity: 1,
+            y: 0,
+            duration: 0.6
+        }, 0);
+    }
+
+    if (hamburger) {
+        tl.fromTo(hamburger, {
+            opacity: 0,
+            y: -12
+        }, {
+            opacity: 1,
+            y: 0,
+            duration: 0.6
+        }, 0);
+    }
+
+    if (subtitle) {
+        const heroScrollProgress = getHeroScrollProgress();
+
+        if (heroScrollProgress <= 0.02) {
+            tl.fromTo(subtitle, {
+                opacity: 0,
+                y: 16
+            }, {
+                opacity: 1,
+                y: 0,
+                duration: 0.8
+            }, 0.15);
+        } else {
+            syncHeroSubtitle(subtitle, heroScrollProgress);
+        }
+    }
+};
+
 // 1. Entrance (Staggered fade in/scale)
 export const animateDots = (container = document) => {
     const parent = typeof container === 'string' ? document.querySelector(container) : container;
@@ -141,11 +219,7 @@ export const animateDots = (container = document) => {
             const isMainLogo = container === document || container === '#logo-grid' || (parent && parent.id === 'hero');
             if (isMainLogo) {
                 window.isAnimationComplete = true; // Enable interaction main logo
-                const navLinks = document.querySelector('.nav-links');
-                if (navLinks) {
-                    navLinks.style.transition = 'opacity 0.6s ease';
-                    navLinks.style.opacity = '1';
-                }
+                revealIntroChrome();
                 // Refresh ScrollTrigger now that the viewport is stable and the
                 // logo is in its final resting position — fixes cold-start sizing issues
                 if (window.ScrollTrigger) ScrollTrigger.refresh();
@@ -194,6 +268,11 @@ export const initNavScrollAnimation = () => {
             start: 'top top',
             end: 'bottom top', // Animation runs exactly as hero scrolls out (100vh)
             scrub: 1,
+            onUpdate: (self) => {
+                if (subtitle) {
+                    syncHeroSubtitle(subtitle, self.progress);
+                }
+            },
             onLeave: () => {
                 // Logo has landed at nav corner — swap to nav logo instantly
                 navLogoEl.style.opacity = '1';
@@ -216,9 +295,6 @@ export const initNavScrollAnimation = () => {
         ease: 'power2.inOut',
     }, 0);
 
-    if (subtitle) {
-        tl.to(subtitle, { duration: 0.5, opacity: 0, y: -10, ease: 'power1.in' }, 0);
-    }
     tl.to('.blob', { duration: 0.5, opacity: 0, ease: 'power1.in' }, 0);
     tl.to(navbar, {
         duration: 0.6,
@@ -258,14 +334,7 @@ export const initScrollAnimations = () => {
 export const initAnimations = (containerSelector) => {
     animateDots(containerSelector);
 
-    // 2. Subtitle entrance
-    gsap.to(".subtitle-anim", {
-        opacity: 1,
-        delay: 1.5,
-        duration: 1
-    });
-
-    // 3. Background Breathing
+    // 2. Background Breathing
     gsap.to(".blob", {
         scale: 1.2,
         duration: "random(4, 6)",
@@ -286,7 +355,7 @@ export const initAnimations = (containerSelector) => {
         stagger: 0.5
     });
 
-    // 4. Interactive Wiggle & Morph
+    // 3. Interactive Wiggle & Morph
     window.updateWiggleTargets = () => {
         // Only select dots that have finished animating or are already visible
         // Since dots start with opacity 0 or off-screen, we just select all svgs in dot-wrappers
