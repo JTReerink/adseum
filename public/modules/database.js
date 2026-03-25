@@ -166,6 +166,7 @@ export function listenToLetters(callback) {
     return onSnapshot(collection(db, 'letters'), (querySnapshot) => {
         window.letters = {};
         window.letterColors = {};
+        window.letterOffsets = {};
 
         querySnapshot.forEach((snapshotDoc) => {
             const data = snapshotDoc.data();
@@ -192,6 +193,19 @@ export function listenToLetters(callback) {
                 }
             }
             window.letterColors[snapshotDoc.id] = colorMap;
+
+            const offsetMap = {};
+            if (data.offsetData) {
+                for (let rowIndex = 0; rowIndex < data.rows; rowIndex += 1) {
+                    const row = data.offsetData[`row${rowIndex}`] || [];
+                    row.forEach((offset, colIndex) => {
+                        if (offset && (offset.x !== 0 || offset.y !== 0)) {
+                            offsetMap[`${rowIndex},${colIndex}`] = offset;
+                        }
+                    });
+                }
+            }
+            window.letterOffsets[snapshotDoc.id] = offsetMap;
         });
 
         if (callback) {

@@ -22,12 +22,16 @@ import {
 
 window.letters = window.letters || {};
 window.letterColors = window.letterColors || {};
+window.letterOffsets = window.letterOffsets || {};
 
 let rows = 11;
 let cols = 7;
 let currentGrid = Array.from({ length: rows }, () => Array(cols).fill(0));
 let currentColorGrid = Array.from({ length: rows }, () => Array(cols).fill(null));
+let currentOffsetGrid = Array.from({ length: rows }, () => Array(cols).fill(null));
 let selectedColor = null;
+let offsetMode = false;
+let offsetSelection = new Set(); // Set of "row,col" keys
 let currentAccess = {
     user: null,
     email: '',
@@ -55,6 +59,14 @@ const selectedColorLabel = document.getElementById('selected-color-label');
 const colorPalette = document.getElementById('color-palette');
 const paletteColorInput = document.getElementById('palette-color-input');
 const paletteNotice = document.getElementById('palette-notice');
+const offsetModeToggle = document.getElementById('offset-mode-toggle');
+const offsetClearSelection = document.getElementById('offset-clear-selection');
+const offsetControls = document.getElementById('offset-controls');
+const offsetSelectionCount = document.getElementById('offset-selection-count');
+const offsetXInput = document.getElementById('offset-x');
+const offsetYInput = document.getElementById('offset-y');
+const offsetApplyButton = document.getElementById('offset-apply');
+const offsetResetButton = document.getElementById('offset-reset');
 
 let activePalette = [...DEFAULT_DOT_PALETTE];
 let paletteEntries = activePalette.map((color) => ({ color, label: color }));
@@ -118,6 +130,9 @@ function refreshPaletteUi() {
 function clearEditorGrid() {
     currentGrid = Array.from({ length: rows }, () => Array(cols).fill(0));
     currentColorGrid = Array.from({ length: rows }, () => Array(cols).fill(null));
+    currentOffsetGrid = Array.from({ length: rows }, () => Array(cols).fill(null));
+    offsetSelection.clear();
+    updateOffsetUi();
 }
 
 function openNewLetterMode() {
@@ -142,6 +157,7 @@ function closeNewLetterMode() {
 function rebuildLettersFromSnapshot(querySnapshot) {
     window.letters = {};
     window.letterColors = {};
+    window.letterOffsets = {};
 
     querySnapshot.forEach((letterDoc) => {
         const data = letterDoc.data();
@@ -167,6 +183,19 @@ function rebuildLettersFromSnapshot(querySnapshot) {
             }
         }
         window.letterColors[letterDoc.id] = colorMap;
+
+        const offsetMap = {};
+        if (data.offsetData) {
+            for (let rowIndex = 0; rowIndex < data.rows; rowIndex += 1) {
+                const row = data.offsetData[`row${rowIndex}`] || [];
+                row.forEach((offset, colIndex) => {
+                    if (offset && (offset.x !== 0 || offset.y !== 0)) {
+                        offsetMap[`${rowIndex},${colIndex}`] = offset;
+                    }
+                });
+            }
+        }
+        window.letterOffsets[letterDoc.id] = offsetMap;
     });
 }
 
@@ -254,9 +283,10 @@ function initColorPalette() {
 }
 
 function setEditorEnabled(enabled) {
-    [rowsInput, colsInput, newLetterInput, cancelNewLetterButton, saveButton, deleteButton, downloadButton, paletteColorInput].forEach((element) => {
+    [rowsInput, colsInput, newLetterInput, cancelNewLetterButton, saveButton, deleteButton, downloadButton, paletteColorInput, offsetXInput, offsetYInput, offsetApplyButton, offsetResetButton].forEach((element) => {
         element.disabled = !enabled;
     });
+    offsetModeToggle.disabled = !enabled;
 
     colorPalette.querySelectorAll('.color-swatch, .eraser-swatch, .add-color-swatch').forEach((swatch) => {
         swatch.style.pointerEvents = enabled ? 'auto' : 'none';
@@ -304,6 +334,90 @@ function buildColorMapFromGrid() {
     return colorMap;
 }
 
+function buildOffsetMapFromGrid() {
+    const offsetMap = {};
+    currentOffsetGrid.forEach((row, rowIndex) => {
+        row.forEach((offset, colIndex) => {
+            if (offset && (offset.x !== 0 || offset.y !== 0)) {
+                offsetMap[`${rowIndex},${colIndex}`] = { x: offset.x, y: offset.y };
+            }
+        });
+    });
+    return offsetMap;
+}
+
+function getOffset(rowIndex, colIndex) {
+    return currentOffsetGrid[rowIndex] && currentOffsetGrid[rowIndex][colIndex]
+        ? currentOffsetGrid[rowIndex][colIndex]
+        : null;
+}
+
+function updateOffsetUi() {
+    const count = offsetSelection.size;
+    offsetSelectionCount.textContent = count;
+    offsetClearSelection.classList.toggle('hidden', count === 0);
+    offsetControls.classList.toggle('hidden', !offsetMode);
+
+    // When exactly one dot is selected or all share the same offset, show its values
+    if (count > 0) {
+        const keys = [...offsetSelection];
+        const offsets = keys.map(k => {
+            const [r, c] = k.split(',').map(Number);
+            return getOffset(r, c) || { x: 0, y: 0 };
+        });
+        const allSameX = offsets.every(o => o.x === offsets[0].x);
+        const allSameY = offsets.every(o => o.y === offsets[0].y);
+        offsetXInput.value = allSameX ? offsets[0].x : '';
+        offsetYInput.value = allSameY ? offsets[0].y : '';
+    } else {
+        offsetXInput.value = 0;
+        offsetYInput.value = 0;
+    }
+
+    // Update cell classes for offset indicators
+    editorGrid.querySelectorAll('.cell').forEach(cell => {
+        const r = parseInt(cell.dataset.r);
+        const c = parseInt(cell.dataset.c);
+        const key = `${r},${c}`;
+        const offset = getOffset(r, c);
+        const hasOffset = offset && (offset.x !== 0 || offset.y !== 0);
+
+        cell.classList.toggle('has-offset', hasOffset && offsetMode);
+        cell.classList.toggle('offset-selected', offsetSelection.has(key));
+    });
+
+    editorGrid.classList.toggle('offset-mode-active', offsetMode);
+}
+
+function toggleOffsetMode() {
+    offsetMode = !offsetMode;
+    offsetModeToggle.textContent = offsetMode ? 'Disable offset mode' : 'Enable offset mode';
+    if (offsetMode) {
+        offsetModeToggle.classList.remove('cms-btn-secondary');
+        offsetModeToggle.classList.add('cms-btn-primary');
+    } else {
+        offsetModeToggle.classList.remove('cms-btn-primary');
+        offsetModeToggle.classList.add('cms-btn-secondary');
+        offsetSelection.clear();
+    }
+    updateOffsetUi();
+}
+
+function applyOffsetToSelection(x, y) {
+    offsetSelection.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        if (currentGrid[r] && currentGrid[r][c] === 1) {
+            currentOffsetGrid[r][c] = { x, y };
+        }
+    });
+    updateOffsetUi();
+    updatePreview();
+}
+
+function resetOffsetSelection() {
+    applyOffsetToSelection(0, 0);
+}
+
 function getUnsupportedGridColors() {
     const allowedColors = new Set(getAllowedPalette());
     const unsupportedColors = new Set();
@@ -322,7 +436,7 @@ function getUnsupportedGridColors() {
 
 function updatePreview() {
     previewContainer.innerHTML = '';
-    const rendered = renderLetter('custom', currentGrid, { colorMap: buildColorMapFromGrid() });
+    const rendered = renderLetter('custom', currentGrid, { colorMap: buildColorMapFromGrid(), offsetMap: buildOffsetMapFromGrid() });
     previewContainer.appendChild(rendered);
 
     if (typeof gsap !== 'undefined') {
@@ -339,6 +453,19 @@ function getCellColor(rowIndex, colIndex) {
 }
 
 function paintCell(cell, rowIndex, colIndex) {
+    // In offset mode, clicking a filled dot toggles its selection
+    if (offsetMode) {
+        if (currentGrid[rowIndex][colIndex] !== 1) return; // only select active dots
+        const key = `${rowIndex},${colIndex}`;
+        if (offsetSelection.has(key)) {
+            offsetSelection.delete(key);
+        } else {
+            offsetSelection.add(key);
+        }
+        updateOffsetUi();
+        return;
+    }
+
     const isOn = currentGrid[rowIndex][colIndex] === 1;
     const cellColor = getCellColor(rowIndex, colIndex);
 
@@ -348,6 +475,9 @@ function paintCell(cell, rowIndex, colIndex) {
     } else if (cellColor === selectedColor) {
         currentGrid[rowIndex][colIndex] = 0;
         currentColorGrid[rowIndex][colIndex] = null;
+        // Clear offset when dot is removed
+        currentOffsetGrid[rowIndex][colIndex] = null;
+        offsetSelection.delete(`${rowIndex},${colIndex}`);
     } else {
         currentColorGrid[rowIndex][colIndex] = selectedColor;
     }
@@ -367,6 +497,7 @@ function initEditor(preserveData = false) {
     if (!preserveData) {
         currentGrid = Array.from({ length: rows }, () => Array(cols).fill(0));
         currentColorGrid = Array.from({ length: rows }, () => Array(cols).fill(null));
+        currentOffsetGrid = Array.from({ length: rows }, () => Array(cols).fill(null));
     }
 
     for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
@@ -398,6 +529,7 @@ function loadLetter(char) {
 
     const data = window.letters[char];
     const storedColorMap = window.letterColors[char] || {};
+    const storedOffsetMap = window.letterOffsets[char] || {};
 
     rows = data.length;
     cols = data[0].length;
@@ -405,6 +537,13 @@ function loadLetter(char) {
     currentColorGrid = Array.from({ length: rows }, (_, rowIndex) =>
         Array.from({ length: cols }, (_, colIndex) => storedColorMap[`${rowIndex},${colIndex}`] || null)
     );
+    currentOffsetGrid = Array.from({ length: rows }, (_, rowIndex) =>
+        Array.from({ length: cols }, (_, colIndex) => {
+            const offset = storedOffsetMap[`${rowIndex},${colIndex}`];
+            return offset ? { x: offset.x, y: offset.y } : null;
+        })
+    );
+    offsetSelection.clear();
 
     currentLetterName = char;
     previousLetterName = '';
@@ -460,11 +599,13 @@ window.updateGridSize = function updateGridSize() {
     const newCols = parseInt(colsInput.value, 10) || 7;
     const newGrid = Array.from({ length: newRows }, () => Array(newCols).fill(0));
     const newColorGrid = Array.from({ length: newRows }, () => Array(newCols).fill(null));
+    const newOffsetGrid = Array.from({ length: newRows }, () => Array(newCols).fill(null));
 
     for (let rowIndex = 0; rowIndex < Math.min(rows, newRows); rowIndex += 1) {
         for (let colIndex = 0; colIndex < Math.min(cols, newCols); colIndex += 1) {
             newGrid[rowIndex][colIndex] = currentGrid[rowIndex][colIndex];
             newColorGrid[rowIndex][colIndex] = currentColorGrid[rowIndex][colIndex];
+            newOffsetGrid[rowIndex][colIndex] = currentOffsetGrid[rowIndex][colIndex];
         }
     }
 
@@ -472,6 +613,8 @@ window.updateGridSize = function updateGridSize() {
     cols = newCols;
     currentGrid = newGrid;
     currentColorGrid = newColorGrid;
+    currentOffsetGrid = newOffsetGrid;
+    offsetSelection.clear();
     initEditor(true);
 };
 
@@ -523,6 +666,7 @@ window.addToAlphabet = async function addToAlphabet() {
     try {
         const gridData = {};
         const colorData = {};
+        const offsetData = {};
 
         currentGrid.forEach((rowData, index) => {
             gridData[`row${index}`] = rowData;
@@ -532,15 +676,21 @@ window.addToAlphabet = async function addToAlphabet() {
             colorData[`row${index}`] = rowData;
         });
 
+        currentOffsetGrid.forEach((rowData, index) => {
+            offsetData[`row${index}`] = rowData.map(o => o ? { x: o.x, y: o.y } : null);
+        });
+
         await setDoc(doc(db, 'letters', name), {
             rows,
             cols,
             gridData,
-            colorData
+            colorData,
+            offsetData
         });
 
         window.letters[name] = cloneGrid(currentGrid);
         window.letterColors[name] = buildColorMapFromGrid();
+        window.letterOffsets[name] = buildOffsetMapFromGrid();
         currentLetterName = name;
         previousLetterName = '';
         closeNewLetterMode();
@@ -604,6 +754,7 @@ window.deleteLetter = async function deleteLetter() {
         await deleteDoc(doc(db, 'letters', name));
         delete window.letters[name];
         delete window.letterColors[name];
+        delete window.letterOffsets[name];
         currentLetterName = '';
         previousLetterName = '';
         closeNewLetterMode();
@@ -674,6 +825,21 @@ paletteColorInput.addEventListener('change', async () => {
         refreshPaletteUi();
     }
 });
+
+offsetModeToggle.addEventListener('click', toggleOffsetMode);
+
+offsetClearSelection.addEventListener('click', () => {
+    offsetSelection.clear();
+    updateOffsetUi();
+});
+
+offsetApplyButton.addEventListener('click', () => {
+    const x = parseFloat(offsetXInput.value) || 0;
+    const y = parseFloat(offsetYInput.value) || 0;
+    applyOffsetToSelection(x, y);
+});
+
+offsetResetButton.addEventListener('click', resetOffsetSelection);
 
 watchEditorAccess((access) => {
     currentAccess = access;

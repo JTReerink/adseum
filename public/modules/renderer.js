@@ -9,6 +9,7 @@ export const renderLetter = (char, grid, options = {}) => {
     // Scale the intra-letter dot gap exactly proportionally to the downscaled dotSize
     const gap = options.gap !== undefined ? options.gap : (DOT_SPACING * sizeRatio);
     const colorMap = options.colorMap || {};
+    const offsetMap = options.offsetMap || {};
     const allowedPalette = new Set(Array.isArray(window.dotPalette) && window.dotPalette.length > 0 ? window.dotPalette : DEFAULT_DOT_PALETTE);
 
     const letterCol = document.createElement('div');
@@ -41,6 +42,14 @@ export const renderLetter = (char, grid, options = {}) => {
                     dotWrapper.style.zIndex = 20; // Higher z-index for black
                 }
                 dotWrapper.style.position = 'relative'; // Ensure z-index works
+
+                // Apply dot offset if present
+                const offset = offsetMap[key];
+                if (offset && (offset.x !== 0 || offset.y !== 0)) {
+                    const ox = (offset.x || 0) * sizeRatio;
+                    const oy = (offset.y || 0) * sizeRatio;
+                    dotWrapper.style.transform = `translate(${ox}px, ${oy}px)`;
+                }
 
                 const dot = createDot(color, {
                     dotSize,
@@ -131,7 +140,8 @@ export const renderText = (containerId, text, options = {}) => {
             if (window.letters && window.letters[key]) {
                 const charOptions = {
                     ...finalOptions,
-                    colorMap: (window.letterColors && window.letterColors[key]) || {}
+                    colorMap: (window.letterColors && window.letterColors[key]) || {},
+                    offsetMap: (window.letterOffsets && window.letterOffsets[key]) || {}
                 };
                 wordContainer.appendChild(renderLetter(key, window.letters[key], charOptions));
             }
