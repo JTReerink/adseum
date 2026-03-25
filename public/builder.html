@@ -74,6 +74,24 @@
             border: 3px solid var(--cms-brand-blue, #325AF1);
             box-shadow: 0 0 0 2px white, 0 0 0 4px var(--cms-brand-blue, #325AF1);
         }
+
+        /* Offset mode: dot has a non-zero offset */
+        .cell.has-offset {
+            outline: 2px dashed #325AF1;
+            outline-offset: -2px;
+        }
+
+        /* Offset mode: dot is selected for editing */
+        .cell.offset-selected {
+            outline: 2px solid #E020E0;
+            outline-offset: -2px;
+            box-shadow: 0 0 0 2px rgba(224, 32, 224, 0.3);
+        }
+
+        /* Offset mode active cursor */
+        .offset-mode-active .cell.active {
+            cursor: crosshair;
+        }
     </style>
 </head>
 
@@ -110,6 +128,12 @@
         </div>
 
         <div class="flex-1 overflow-y-auto">
+            <!-- How it works -->
+            <div class="px-6 py-4 border-b border-gray-100">
+                <p class="builder-section-label">How it works</p>
+                <p class="builder-help">Click empty cells to place dots. Click filled dots to remove them. With a color selected, clicking a dot changes its color. Use offset mode to nudge dots out of alignment.</p>
+            </div>
+
             <!-- Letter picker -->
             <div class="px-6 py-4 border-b border-gray-100">
                 <p class="builder-section-label">Choose a letter</p>
@@ -151,10 +175,37 @@
                 <input type="color" id="palette-color-input" value="#FF7000" class="hidden">
             </div>
 
-            <!-- How it works -->
+            <!-- Dot offset -->
             <div class="px-6 py-4 border-b border-gray-100">
-                <p class="builder-section-label">How it works</p>
-                <p class="builder-help">Click empty cells to place dots. Click filled dots to remove them. With a color selected, clicking a dot changes its color.</p>
+                <p class="builder-section-label">Dot offset</p>
+                <p class="builder-help mb-3">Nudge dots out of perfect alignment. Toggle offset mode, then click dots to select them. Adjust x/y to move selected dots.</p>
+                <div class="flex items-center gap-3 mb-3">
+                    <button id="offset-mode-toggle" type="button" class="cms-btn cms-btn-secondary cms-btn-sm">
+                        Enable offset mode
+                    </button>
+                    <button id="offset-clear-selection" type="button" class="cms-btn cms-btn-secondary cms-btn-sm hidden">
+                        Deselect all
+                    </button>
+                </div>
+                <div id="offset-controls" class="hidden space-y-2">
+                    <p class="text-xs text-gray-400"><span id="offset-selection-count">0</span> dot(s) selected</p>
+                    <div class="flex gap-3">
+                        <label class="flex-1">
+                            <span class="text-xs text-gray-500 block mb-1">X offset (px)</span>
+                            <input type="number" id="offset-x" value="0" step="0.5" class="cms-input text-center">
+                        </label>
+                        <label class="flex-1">
+                            <span class="text-xs text-gray-500 block mb-1">Y offset (px)</span>
+                            <input type="number" id="offset-y" value="0" step="0.5" class="cms-input text-center">
+                        </label>
+                    </div>
+                    <button id="offset-apply" type="button" class="cms-btn cms-btn-primary cms-btn-sm w-full justify-center">
+                        Apply offset to selected
+                    </button>
+                    <button id="offset-reset" type="button" class="cms-btn cms-btn-secondary cms-btn-sm w-full justify-center">
+                        Reset selected to 0
+                    </button>
+                </div>
             </div>
         </div>
 

@@ -14,6 +14,7 @@ window.initAnimations = initAnimations;
 
 window.letters = {};
 window.letterColors = {};
+window.letterOffsets = {};
 window.siteContent = DEFAULT_SITE_CONTENT;
 window.dotPalette = DEFAULT_SITE_CONTENT.dotPalette;
 
