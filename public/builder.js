@@ -93,16 +93,16 @@ function updateLetterSelectionUi() {
     const isExistingLetter = Boolean(currentLetterName && window.letters[currentLetterName]);
 
     if (isExistingLetter) {
-        selectedLetterStatus.textContent = `Editing "${currentLetterName}".`;
-        saveButton.textContent = 'Save / Update';
+        selectedLetterStatus.textContent = `Editing letter "${currentLetterName}".`;
+        saveButton.textContent = 'Save changes';
     } else if (newLetterRow.classList.contains('hidden')) {
-        selectedLetterStatus.textContent = 'Select a letter to edit, or add a new one.';
+        selectedLetterStatus.textContent = 'Pick a letter to edit, or create a new one.';
         saveButton.textContent = 'Save letter';
     } else {
         const typedCharacter = newLetterInput.value.trim();
         selectedLetterStatus.textContent = typedCharacter
-            ? `Creating "${typedCharacter}".`
-            : 'Choose the character for your new letter.';
+            ? `Creating new letter "${typedCharacter}".`
+            : 'Type the character you want to design.';
         saveButton.textContent = 'Save new letter';
     }
 
@@ -129,7 +129,7 @@ function openNewLetterMode() {
     initEditor(true);
     refreshLetterButtons();
     updateLetterSelectionUi();
-    setPaletteNotice('Choose the character you want to add, then save the new letter.');
+    setPaletteNotice('Type the character you want to design, then draw it on the grid and save.');
     setTimeout(() => newLetterInput.focus(), 0);
 }
 
@@ -172,7 +172,7 @@ function rebuildLettersFromSnapshot(querySnapshot) {
 
 function getSelectedColorLabel(color) {
     if (!color) {
-        return 'None (black)';
+        return 'Default (black)';
     }
 
     const entry = paletteEntries.find((item) => item.color === color);
@@ -204,7 +204,7 @@ function initColorPalette() {
     const eraser = document.createElement('div');
     eraser.className = 'eraser-swatch';
     eraser.textContent = 'x';
-    eraser.title = 'No colour (black dot)';
+    eraser.title = 'Default (black dot)';
     if (!selectedColor) {
         eraser.classList.add('selected');
     }
@@ -273,7 +273,7 @@ function setEditorEnabled(enabled) {
 
 function renderAuthState() {
     if (!currentAccess.user) {
-        authStatus.textContent = 'Sign in with an approved Google account to edit letters.';
+        authStatus.textContent = 'Sign in with your Google account to start designing letters.';
         signInButton.classList.remove('hidden');
         signOutButton.classList.add('hidden');
         setEditorEnabled(false);
@@ -284,10 +284,10 @@ function renderAuthState() {
     signOutButton.classList.remove('hidden');
 
     if (currentAccess.canEdit) {
-        authStatus.textContent = `Signed in as ${currentAccess.email}. You can edit and publish letters.`;
+        authStatus.textContent = `Signed in as ${currentAccess.email}.`;
         setEditorEnabled(true);
     } else {
-        authStatus.textContent = `Signed in as ${currentAccess.email}, but this account is not approved to edit.`;
+        authStatus.textContent = `Signed in as ${currentAccess.email}, but this account hasn't been approved yet. Ask the site owner to invite you.`;
         setEditorEnabled(false);
     }
 }
@@ -415,9 +415,9 @@ function loadLetter(char) {
 
     const unsupportedColors = getUnsupportedGridColors();
     if (unsupportedColors.length > 0) {
-        setPaletteNotice(`This letter uses colors outside the current palette: ${unsupportedColors.join(', ')}. Repaint those dots before saving.`, true);
+        setPaletteNotice(`This letter uses colors not in your current palette: ${unsupportedColors.join(', ')}. Please repaint those dots before saving.`, true);
     } else {
-        setPaletteNotice('This palette controls every colored dot that can appear on the live website.');
+        setPaletteNotice('These colors are available across your website. Use the + button to add new ones.');
     }
 }
 
@@ -426,7 +426,7 @@ function refreshLetterButtons() {
 
     Object.keys(window.letters || {}).sort().forEach((char) => {
         const button = document.createElement('button');
-        button.className = `rounded-full border px-3 py-1 text-sm transition ${currentLetterName === char ? 'border-black bg-black text-white' : 'border-slate-200 hover:bg-slate-100'}`;
+        button.className = `builder-letter-btn${currentLetterName === char ? ' active' : ''}`;
         button.innerText = char;
         button.addEventListener('click', () => loadLetter(char));
         letterButtons.appendChild(button);
@@ -434,8 +434,10 @@ function refreshLetterButtons() {
 
     const addButton = document.createElement('button');
     addButton.type = 'button';
-    addButton.className = 'rounded-full border border-dashed border-slate-400 px-3 py-1 text-sm font-bold text-slate-700 transition hover:bg-slate-100';
-    addButton.textContent = '+ Add letter';
+    addButton.className = 'builder-letter-btn';
+    addButton.style.borderStyle = 'dashed';
+    addButton.textContent = '+';
+    addButton.title = 'Design a new letter';
     addButton.addEventListener('click', openNewLetterMode);
     letterButtons.appendChild(addButton);
 }
@@ -475,7 +477,7 @@ window.updateGridSize = function updateGridSize() {
 
 window.downloadLettersJS = function downloadLettersJS() {
     if (!currentAccess.canEdit) {
-        window.alert('Sign in with an approved editor account before downloading the latest letter set.');
+        window.alert('Please sign in with an approved account to download the letter set.');
         return;
     }
 
@@ -499,18 +501,18 @@ window.addToAlphabet = async function addToAlphabet() {
 
     const name = (currentLetterName || newLetterInput.value.trim()).trim();
     if (!name) {
-        window.alert('Please choose the character you want to save.');
+        window.alert('Please type the character you want to save first.');
         return;
     }
 
     if (name.length !== 1) {
-        window.alert('Letters must be saved as a single character.');
+        window.alert('Each letter design represents a single character (e.g. "A", "b", "3").');
         return;
     }
 
     const unsupportedColors = getUnsupportedGridColors();
     if (unsupportedColors.length > 0) {
-        setPaletteNotice(`Save blocked. Repaint dots using the predefined palette only: ${unsupportedColors.join(', ')}.`, true);
+        setPaletteNotice(`Some dots use colors not in your website palette (${unsupportedColors.join(', ')}). Please repaint them with palette colors before saving.`, true);
         return;
     }
 
@@ -544,10 +546,10 @@ window.addToAlphabet = async function addToAlphabet() {
         closeNewLetterMode();
         refreshLetterButtons();
         updateLetterSelectionUi();
-        window.alert(`Letter "${name}" saved.`);
+        window.alert(`Letter "${name}" has been saved! It will appear on your website automatically.`);
     } catch (error) {
         console.error('Error saving letter:', error);
-        window.alert('Error saving letter. Check the console for details.');
+        window.alert('Something went wrong while saving. Please check your connection and try again.');
     } finally {
         saveButton.textContent = originalText;
         saveButton.disabled = !currentAccess.canEdit;
@@ -593,7 +595,7 @@ window.deleteLetter = async function deleteLetter() {
         return;
     }
 
-    const confirmed = window.confirm(`Are you sure you want to delete the letter "${name}"? This cannot be undone.`);
+    const confirmed = window.confirm(`Delete the letter "${name}"? It will be removed from your website and this cannot be undone.`);
     if (!confirmed) {
         return;
     }
@@ -609,10 +611,10 @@ window.deleteLetter = async function deleteLetter() {
         initEditor(true);
         refreshLetterButtons();
         updateLetterSelectionUi();
-        window.alert(`Letter "${name}" deleted.`);
+        window.alert(`Letter "${name}" has been deleted.`);
     } catch (error) {
         console.error('Error deleting letter:', error);
-        window.alert('Error deleting letter. Check the console for details.');
+        window.alert('Something went wrong while deleting. Please check your connection and try again.');
     }
 };
 
@@ -688,7 +690,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const siteContent = await loadSiteContent();
         activePalette = normalizeDotPalette(siteContent.dotPalette);
         refreshPaletteUi();
-        setPaletteNotice('Use the + circle to add a new predefined color for the live website.');
+        setPaletteNotice('These colors are available across your website. Use the + button to add new ones.');
     } catch (error) {
         console.error('Error loading palette settings:', error);
         setPaletteNotice('Could not load the saved palette, so the default palette is shown for now.', true);

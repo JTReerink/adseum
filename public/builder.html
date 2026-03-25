@@ -4,33 +4,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adseum Letter Builder</title>
+    <title>ADSEUM — Letter Designer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link rel="stylesheet" href="style.css">
     <style>
         .cell {
             width: 30px;
             height: 30px;
             border: 1px solid #e5e7eb;
             cursor: pointer;
-            transition: background-color 0.1s;
+            transition: background-color 0.1s, border-color 0.1s;
             box-sizing: border-box;
+            border-radius: 3px;
         }
 
         .cell:hover {
-            filter: brightness(0.85);
+            border-color: #9ca3af;
+        }
+
+        .cell.active {
+            border-color: transparent;
         }
 
         .color-swatch,
         .eraser-swatch,
         .add-color-swatch {
-            width: 28px;
-            height: 28px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             cursor: pointer;
             box-sizing: border-box;
             flex-shrink: 0;
-            transition: transform 0.1s;
+            transition: transform 0.15s, box-shadow 0.15s;
         }
 
         .color-swatch {
@@ -65,84 +71,100 @@
 
         .color-swatch.selected,
         .eraser-swatch.selected {
-            border: 3px solid #4f46e5;
-            box-shadow: 0 0 0 2px white, 0 0 0 4px #4f46e5;
+            border: 3px solid var(--cms-brand-blue, #325AF1);
+            box-shadow: 0 0 0 2px white, 0 0 0 4px var(--cms-brand-blue, #325AF1);
         }
     </style>
 </head>
 
-<body class="min-h-screen bg-gray-50 font-mono lg:flex lg:h-screen lg:overflow-hidden">
-    <div class="w-full bg-white border-r p-8 flex flex-col gap-6 overflow-y-auto lg:max-w-xl">
-        <div class="flex items-start justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-bold mb-2">Letter Builder</h1>
-                <p class="text-sm text-gray-500">Manage the custom dot alphabet used throughout the website.</p>
-            </div>
-            <div class="flex flex-col items-end gap-2">
-                <a href="/admin.html" class="text-xs uppercase tracking-[0.2em] text-gray-500 hover:text-black">CMS</a>
-                <a href="/index.html" class="text-xs uppercase tracking-[0.2em] text-gray-500 hover:text-black">Live site</a>
+<body class="min-h-screen bg-[#faf9f7] lg:flex lg:h-screen lg:overflow-hidden" style="font-family: 'DM Sans', sans-serif;">
+
+    <!-- Sidebar -->
+    <div class="builder-sidebar w-full bg-white border-r border-gray-100 flex flex-col overflow-y-auto lg:max-w-md xl:max-w-lg">
+
+        <!-- Header -->
+        <div class="p-6 pb-4 border-b border-gray-100">
+            <div class="cms-header-stripe mb-4 rounded"></div>
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.25em] text-gray-400 font-mono">ADSEUM</p>
+                    <h1 class="mt-1 text-xl font-bold" style="font-family: 'DIN Alternate', sans-serif; letter-spacing: 0.06em;">
+                        Letter Designer
+                    </h1>
+                    <p class="text-sm text-gray-500 mt-1">Design the custom dot-letter characters used across your website.</p>
+                </div>
+                <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                    <a href="/admin.html" class="cms-btn cms-btn-secondary cms-btn-sm text-xs">Editor</a>
+                    <a href="/index.html" class="cms-btn cms-btn-secondary cms-btn-sm text-xs" target="_blank">Live site</a>
+                </div>
             </div>
         </div>
 
-        <div class="border rounded-lg p-4 bg-gray-50">
-            <label class="block text-sm font-bold mb-2">Editor Access:</label>
-            <p id="auth-status" class="text-xs text-gray-600 mb-3">Checking sign-in status...</p>
+        <!-- Auth -->
+        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+            <p id="auth-status" class="text-sm text-gray-500 mb-2">Checking sign-in...</p>
             <div class="flex gap-2">
-                <button id="sign-in-button"
-                    class="flex-1 bg-black text-white py-2 rounded hover:bg-gray-800 transition text-sm">Sign in with Google</button>
-                <button id="sign-out-button"
-                    class="hidden bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300 transition text-sm">Sign out</button>
+                <button id="sign-in-button" class="cms-btn cms-btn-primary cms-btn-sm flex-1 justify-center">Sign in with Google</button>
+                <button id="sign-out-button" class="hidden cms-btn cms-btn-secondary cms-btn-sm">Sign out</button>
             </div>
         </div>
 
-        <div>
-            <label class="block text-sm font-bold mb-2">Load Existing:</label>
-            <div class="flex flex-wrap gap-2" id="letter-buttons"></div>
-            <div id="new-letter-row" class="hidden mt-3 flex gap-2">
-                <input type="text" id="new-letter-input" placeholder="Character" maxlength="1" class="flex-1 border p-2 rounded text-sm">
-                <button id="cancel-new-letter-button" type="button"
-                    class="rounded bg-gray-200 px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-gray-800 transition hover:bg-gray-300">Cancel</button>
-            </div>
-            <p id="selected-letter-status" class="mt-2 text-xs text-gray-500">Select a letter to edit, or add a new one.</p>
-        </div>
-
-        <div>
-            <label class="block text-sm font-bold mb-2">Grid Dimensions:</label>
-            <div class="flex gap-2 mb-2">
-                <div class="w-1/2">
-                    <label class="text-xs text-gray-500">Rows</label>
-                    <input type="number" id="grid-rows" value="11" class="w-full border p-2 rounded text-sm">
+        <div class="flex-1 overflow-y-auto">
+            <!-- Letter picker -->
+            <div class="px-6 py-4 border-b border-gray-100">
+                <p class="builder-section-label">Choose a letter</p>
+                <p class="builder-help mb-3">Pick an existing letter to edit, or create a new one.</p>
+                <div class="flex flex-wrap gap-2" id="letter-buttons"></div>
+                <div id="new-letter-row" class="hidden mt-3 flex gap-2">
+                    <input type="text" id="new-letter-input" placeholder="Type one character" maxlength="1" class="cms-input flex-1 text-center text-lg font-bold">
+                    <button id="cancel-new-letter-button" type="button" class="cms-btn cms-btn-secondary cms-btn-sm">Cancel</button>
                 </div>
-                <div class="w-1/2">
-                    <label class="text-xs text-gray-500">Cols</label>
-                    <input type="number" id="grid-cols" value="7" class="w-full border p-2 rounded text-sm">
-                </div>
+                <p id="selected-letter-status" class="mt-2 text-xs text-gray-400">Select a letter to edit, or add a new one.</p>
             </div>
-            <button onclick="updateGridSize()"
-                class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-1 rounded text-xs transition">Update grid size</button>
+
+            <!-- Grid size -->
+            <div class="px-6 py-4 border-b border-gray-100">
+                <p class="builder-section-label">Grid size</p>
+                <p class="builder-help mb-2">Adjust the number of rows and columns for this letter's grid.</p>
+                <div class="flex gap-3 mb-2">
+                    <label class="flex-1">
+                        <span class="text-xs text-gray-500 block mb-1">Rows</span>
+                        <input type="number" id="grid-rows" value="11" class="cms-input text-center">
+                    </label>
+                    <label class="flex-1">
+                        <span class="text-xs text-gray-500 block mb-1">Columns</span>
+                        <input type="number" id="grid-cols" value="7" class="cms-input text-center">
+                    </label>
+                </div>
+                <button onclick="updateGridSize()" class="cms-btn cms-btn-secondary cms-btn-sm w-full justify-center">
+                    Apply grid size
+                </button>
+            </div>
+
+            <!-- Colors -->
+            <div class="px-6 py-4 border-b border-gray-100">
+                <p class="builder-section-label">Dot color</p>
+                <p class="builder-help mb-3">Pick a color, then click dots on the grid to paint them. Use the eraser to reset to black.</p>
+                <div class="flex flex-wrap gap-2 items-center" id="color-palette"></div>
+                <p class="text-xs text-gray-400 mt-2">Active: <span id="selected-color-label" class="font-semibold">Default (black)</span></p>
+                <p id="palette-notice" class="text-xs text-gray-400 mt-1">Use the + button to add a new color to the website palette.</p>
+                <input type="color" id="palette-color-input" value="#FF7000" class="hidden">
+            </div>
+
+            <!-- How it works -->
+            <div class="px-6 py-4 border-b border-gray-100">
+                <p class="builder-section-label">How it works</p>
+                <p class="builder-help">Click empty cells to place dots. Click filled dots to remove them. With a color selected, clicking a dot changes its color.</p>
+            </div>
         </div>
 
-        <div>
-            <label class="block text-sm font-bold mb-2">Dot Color:</label>
-            <p class="text-xs text-gray-500 mb-2">Pick one of the predefined colors, then click cells to paint dots. Select the eraser to draw default black dots.</p>
-            <div class="flex flex-wrap gap-2 items-center" id="color-palette"></div>
-            <p class="text-xs text-gray-400 mt-2">Selected: <span id="selected-color-label" class="font-bold">None (black)</span></p>
-            <p id="palette-notice" class="text-xs text-gray-400 mt-2">Use the + circle to add a new predefined color for the live website.</p>
-            <input type="color" id="palette-color-input" value="#FF7000" class="hidden">
-        </div>
-
-        <div>
-            <label class="block text-sm font-bold mb-2">Usage:</label>
-            <p class="text-xs text-gray-600">Click cells to toggle dots on or off. With a color selected, clicking an active dot changes its color.</p>
-        </div>
-
-        <div class="mt-auto border-t pt-4">
-            <label class="block text-sm font-bold mb-2">Save Letter:</label>
-            <div class="flex gap-2 mb-2">
-                <button id="save-button" onclick="addToAlphabet()"
-                    class="flex-1 bg-black text-white py-2 rounded hover:bg-gray-800 transition">Save / Update</button>
-                <button id="delete-button" onclick="deleteLetter()"
-                    class="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 transition" title="Delete Letter">
+        <!-- Save actions -->
+        <div class="px-6 py-4 border-t border-gray-100 bg-white space-y-2">
+            <div class="flex gap-2">
+                <button id="save-button" onclick="addToAlphabet()" class="cms-btn cms-btn-primary flex-1 justify-center">
+                    Save letter
+                </button>
+                <button id="delete-button" onclick="deleteLetter()" class="cms-btn cms-btn-danger" title="Delete this letter">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="3 6 5 6 21 6"></polyline>
@@ -150,35 +172,37 @@
                     </svg>
                 </button>
             </div>
-
-            <hr class="my-4">
-
-            <button id="download-button" onclick="downloadLettersJS()"
-                class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition text-xs flex justify-center items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            <button id="download-button" onclick="downloadLettersJS()" class="cms-btn cms-btn-secondary w-full justify-center cms-btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
                     <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
-                Download letters.js
+                Download backup file
             </button>
         </div>
     </div>
 
-    <div class="flex-1 bg-gray-50 p-8 overflow-auto">
-        <div class="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] items-start">
-            <div class="rounded-2xl border bg-white p-6 shadow-sm">
-                <div class="text-center mb-4 font-bold text-gray-400">EDITOR</div>
+    <!-- Main area: editor + preview -->
+    <div class="flex-1 bg-[#faf9f7] p-6 lg:p-8 overflow-auto">
+        <div class="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] items-start">
+            <div class="cms-card">
+                <div class="text-center mb-4">
+                    <p class="builder-section-label" style="margin-bottom: 0;">Drawing grid</p>
+                    <p class="text-xs text-gray-400">Click cells to toggle dots on or off</p>
+                </div>
                 <div class="overflow-auto">
-                    <div id="editor-grid" class="grid w-max mx-auto bg-white border shadow-sm p-4 gap-1"></div>
+                    <div id="editor-grid" class="grid w-max mx-auto bg-white p-4 gap-1"></div>
                 </div>
             </div>
 
-            <div class="rounded-2xl border bg-white p-6 shadow-sm">
-                <div class="text-center mb-4 font-bold text-gray-400">PREVIEW</div>
-                <div id="preview-container"
-                    class="min-h-[220px] flex items-center justify-center overflow-auto"></div>
+            <div class="cms-card">
+                <div class="text-center mb-4">
+                    <p class="builder-section-label" style="margin-bottom: 0;">Live preview</p>
+                    <p class="text-xs text-gray-400">How this letter looks on the website</p>
+                </div>
+                <div id="preview-container" class="min-h-[200px] flex items-center justify-center overflow-auto"></div>
             </div>
         </div>
     </div>

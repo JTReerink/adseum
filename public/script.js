@@ -142,7 +142,7 @@ function buildSections(sections) {
         }
 
         const body = document.createElement('div');
-        body.className = 'cms-section-body rich-content max-w-3xl mx-auto text-center text-gray-700 text-lg md:text-xl leading-relaxed';
+        body.className = 'cms-section-body rich-content max-w-2xl mx-auto text-left text-gray-700 text-lg md:text-xl leading-relaxed';
         setRichContent(body, section.bodyHtml);
 
         inner.appendChild(heading);
