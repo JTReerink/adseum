@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "dev",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["node_modules/serve/build/main.js", "public", "-l", "3999", "--no-clipboard"],
+      "port": 3999
+    },
+    {
       "name": "Firebase Hosting",
       "runtimeExecutable": "firebase",
       "runtimeArgs": ["serve", "--only", "hosting"],
