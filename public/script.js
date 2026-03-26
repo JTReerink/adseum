@@ -274,6 +274,24 @@ function initNavbar() {
         }
     };
 
+    const smoothScrollTo = (targetY, duration = 800) => {
+        const startY = window.scrollY;
+        const diff = targetY - startY;
+        if (Math.abs(diff) < 1) return;
+        let start = null;
+
+        const easeInOutCubic = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+        const step = (timestamp) => {
+            if (!start) start = timestamp;
+            const progress = Math.min((timestamp - start) / duration, 1);
+            window.scrollTo(0, startY + diff * easeInOutCubic(progress));
+            if (progress < 1) requestAnimationFrame(step);
+        };
+
+        requestAnimationFrame(step);
+    };
+
     const handleNavClick = (event) => {
         const link = event.target.closest('a[href^="#"]');
         if (!link) return;
@@ -281,8 +299,20 @@ function initNavbar() {
         event.preventDefault();
         const target = document.querySelector(link.getAttribute('href'));
         if (target) {
+            const wasMenuOpen = mobileMenuOpen;
             closeMobileMenu();
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            const doScroll = () => {
+                const navHeight = navbar.offsetHeight;
+                const targetTop = target.getBoundingClientRect().top + window.scrollY - navHeight;
+                smoothScrollTo(targetTop);
+            };
+
+            if (wasMenuOpen) {
+                requestAnimationFrame(doScroll);
+            } else {
+                doScroll();
+            }
         }
     };
 
