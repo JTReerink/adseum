@@ -283,7 +283,7 @@ function initColorPalette() {
 }
 
 function setEditorEnabled(enabled) {
-    [rowsInput, colsInput, newLetterInput, cancelNewLetterButton, saveButton, deleteButton, downloadButton, paletteColorInput, offsetXInput, offsetYInput, offsetApplyButton, offsetResetButton].forEach((element) => {
+    [newLetterInput, cancelNewLetterButton, saveButton, deleteButton, downloadButton, paletteColorInput, offsetXInput, offsetYInput, offsetApplyButton, offsetResetButton].forEach((element) => {
         element.disabled = !enabled;
     });
     offsetModeToggle.disabled = !enabled;
@@ -436,7 +436,7 @@ function getUnsupportedGridColors() {
 
 function updatePreview() {
     previewContainer.innerHTML = '';
-    const rendered = renderLetter('custom', currentGrid, { colorMap: buildColorMapFromGrid(), offsetMap: buildOffsetMapFromGrid() });
+    const rendered = renderLetter('custom', currentGrid, { colorMap: buildColorMapFromGrid(), offsetMap: buildOffsetMapFromGrid(), visualScale: 1.35, gap: 2 });
     previewContainer.appendChild(rendered);
 
     if (typeof gsap !== 'undefined') {
@@ -489,8 +489,7 @@ function paintCell(cell, rowIndex, colIndex) {
 }
 
 function initEditor(preserveData = false) {
-    rowsInput.value = rows;
-    colsInput.value = cols;
+    updateGridSizeDisplay();
     editorGrid.innerHTML = '';
     editorGrid.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
 
@@ -592,28 +591,78 @@ async function loadFromFirestore() {
     }
 }
 
-window.updateGridSize = function updateGridSize() {
+function updateGridSizeDisplay() {
+    rowsInput.textContent = rows;
+    colsInput.textContent = cols;
+}
+
+window.addRow = function addRow(side) {
     if (!currentAccess.canEdit) return;
+    const emptyRow = Array(cols).fill(0);
+    const emptyColorRow = Array(cols).fill(null);
+    const emptyOffsetRow = Array(cols).fill(null);
+    if (side === 'top') {
+        currentGrid.unshift(emptyRow);
+        currentColorGrid.unshift(emptyColorRow);
+        currentOffsetGrid.unshift(emptyOffsetRow);
+    } else {
+        currentGrid.push(emptyRow);
+        currentColorGrid.push(emptyColorRow);
+        currentOffsetGrid.push(emptyOffsetRow);
+    }
+    rows += 1;
+    offsetSelection.clear();
+    initEditor(true);
+};
 
-    const newRows = parseInt(rowsInput.value, 10) || 11;
-    const newCols = parseInt(colsInput.value, 10) || 7;
-    const newGrid = Array.from({ length: newRows }, () => Array(newCols).fill(0));
-    const newColorGrid = Array.from({ length: newRows }, () => Array(newCols).fill(null));
-    const newOffsetGrid = Array.from({ length: newRows }, () => Array(newCols).fill(null));
+window.removeRow = function removeRow(side) {
+    if (!currentAccess.canEdit || rows <= 1) return;
+    if (side === 'top') {
+        currentGrid.shift();
+        currentColorGrid.shift();
+        currentOffsetGrid.shift();
+    } else {
+        currentGrid.pop();
+        currentColorGrid.pop();
+        currentOffsetGrid.pop();
+    }
+    rows -= 1;
+    offsetSelection.clear();
+    initEditor(true);
+};
 
-    for (let rowIndex = 0; rowIndex < Math.min(rows, newRows); rowIndex += 1) {
-        for (let colIndex = 0; colIndex < Math.min(cols, newCols); colIndex += 1) {
-            newGrid[rowIndex][colIndex] = currentGrid[rowIndex][colIndex];
-            newColorGrid[rowIndex][colIndex] = currentColorGrid[rowIndex][colIndex];
-            newOffsetGrid[rowIndex][colIndex] = currentOffsetGrid[rowIndex][colIndex];
+window.addCol = function addCol(side) {
+    if (!currentAccess.canEdit) return;
+    for (let i = 0; i < rows; i += 1) {
+        if (side === 'left') {
+            currentGrid[i].unshift(0);
+            currentColorGrid[i].unshift(null);
+            currentOffsetGrid[i].unshift(null);
+        } else {
+            currentGrid[i].push(0);
+            currentColorGrid[i].push(null);
+            currentOffsetGrid[i].push(null);
         }
     }
+    cols += 1;
+    offsetSelection.clear();
+    initEditor(true);
+};
 
-    rows = newRows;
-    cols = newCols;
-    currentGrid = newGrid;
-    currentColorGrid = newColorGrid;
-    currentOffsetGrid = newOffsetGrid;
+window.removeCol = function removeCol(side) {
+    if (!currentAccess.canEdit || cols <= 1) return;
+    for (let i = 0; i < rows; i += 1) {
+        if (side === 'left') {
+            currentGrid[i].shift();
+            currentColorGrid[i].shift();
+            currentOffsetGrid[i].shift();
+        } else {
+            currentGrid[i].pop();
+            currentColorGrid[i].pop();
+            currentOffsetGrid[i].pop();
+        }
+    }
+    cols -= 1;
     offsetSelection.clear();
     initEditor(true);
 };

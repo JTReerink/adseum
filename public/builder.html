@@ -149,20 +149,20 @@
             <!-- Grid size -->
             <div class="px-6 py-4 border-b border-gray-100">
                 <p class="builder-section-label">Grid size</p>
-                <p class="builder-help mb-2">Adjust the number of rows and columns for this letter's grid.</p>
-                <div class="flex gap-3 mb-2">
-                    <label class="flex-1">
-                        <span class="text-xs text-gray-500 block mb-1">Rows</span>
-                        <input type="number" id="grid-rows" value="11" class="cms-input text-center">
-                    </label>
-                    <label class="flex-1">
-                        <span class="text-xs text-gray-500 block mb-1">Columns</span>
-                        <input type="number" id="grid-cols" value="7" class="cms-input text-center">
-                    </label>
+                <p class="builder-help mb-2">Add or remove rows and columns from any side.</p>
+                <p class="text-xs text-gray-400 mb-2">Current: <span id="grid-rows" class="font-semibold">11</span> rows × <span id="grid-cols" class="font-semibold">7</span> columns</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <p class="text-xs text-gray-500 font-medium col-span-2">Rows</p>
+                    <button onclick="addRow('top')" class="cms-btn cms-btn-secondary cms-btn-sm justify-center text-xs">+ Top</button>
+                    <button onclick="removeRow('top')" class="cms-btn cms-btn-secondary cms-btn-sm justify-center text-xs">− Top</button>
+                    <button onclick="addRow('bottom')" class="cms-btn cms-btn-secondary cms-btn-sm justify-center text-xs">+ Bottom</button>
+                    <button onclick="removeRow('bottom')" class="cms-btn cms-btn-secondary cms-btn-sm justify-center text-xs">− Bottom</button>
+                    <p class="text-xs text-gray-500 font-medium col-span-2 mt-1">Columns</p>
+                    <button onclick="addCol('left')" class="cms-btn cms-btn-secondary cms-btn-sm justify-center text-xs">+ Left</button>
+                    <button onclick="removeCol('left')" class="cms-btn cms-btn-secondary cms-btn-sm justify-center text-xs">− Left</button>
+                    <button onclick="addCol('right')" class="cms-btn cms-btn-secondary cms-btn-sm justify-center text-xs">+ Right</button>
+                    <button onclick="removeCol('right')" class="cms-btn cms-btn-secondary cms-btn-sm justify-center text-xs">− Right</button>
                 </div>
-                <button onclick="updateGridSize()" class="cms-btn cms-btn-secondary cms-btn-sm w-full justify-center">
-                    Apply grid size
-                </button>
             </div>
 
             <!-- Colors -->
