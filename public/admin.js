@@ -424,7 +424,12 @@ function renderAccessState() {
     }
 
     if (!currentAccess.canEdit) {
-        deniedMessage.textContent = `${currentAccess.email} is signed in, but this account hasn't been approved yet. Ask the site owner to invite you.`;
+        const verified = currentAccess.user?.emailVerified;
+        if (!verified) {
+            deniedMessage.textContent = `${currentAccess.email} is signed in, but the email address has not been verified yet. Please sign out and use the email sign-in link to verify your account.`;
+        } else {
+            deniedMessage.textContent = `${currentAccess.email} is signed in, but this account hasn't been approved yet. Ask the site owner to invite you.`;
+        }
         showShell('denied');
         return;
     }
