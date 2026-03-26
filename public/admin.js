@@ -666,32 +666,30 @@ animationSpeedInput.addEventListener('input', () => {
     siteContent.animationSpeed = parseFloat(animationSpeedInput.value) || 1.0;
 });
 
-/* ── Init ── */
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        siteContent = await loadSiteContent();
-    } catch (error) {
-        console.error('Error loading homepage content:', error);
-        siteContent = structuredClone(DEFAULT_SITE_CONTENT);
-        showToast('Could not load saved content. Showing defaults.', 'error');
-    }
+/* ── Init (DOM is guaranteed ready after await requireAuth()) ── */
+try {
+    siteContent = await loadSiteContent();
+} catch (error) {
+    console.error('Error loading homepage content:', error);
+    siteContent = structuredClone(DEFAULT_SITE_CONTENT);
+    showToast('Could not load saved content. Showing defaults.', 'error');
+}
 
-    heroSubtitleEditor.innerHTML = siteContent.hero.subtitleHtml;
-    animationPauseInput.value = siteContent.animationPause ?? 1.5;
-    animationSpeedInput.value = siteContent.animationSpeed ?? 1.0;
-    renderSections();
-    setNotice(contentNotice, 'Ready to publish. Your changes won\'t go live until you click Publish.');
-    setNotice(editorNotice, 'Only approved accounts can edit the website.');
+heroSubtitleEditor.innerHTML = siteContent.hero.subtitleHtml;
+animationPauseInput.value = siteContent.animationPause ?? 1.5;
+animationSpeedInput.value = siteContent.animationSpeed ?? 1.0;
+renderSections();
+setNotice(contentNotice, 'Ready to publish. Your changes won\'t go live until you click Publish.');
+setNotice(editorNotice, 'Only approved accounts can edit the website.');
 
-    listenToLetters((letters) => {
-        lettersMap = letters || {};
-        lettersReady = true;
-        renderAllInlineValidation();
-    });
+listenToLetters((letters) => {
+    lettersMap = letters || {};
+    lettersReady = true;
+    renderAllInlineValidation();
+});
 
-    watchEditorAccess(async (access) => {
-        currentAccess = access;
-        renderAccessState();
-        if (currentAccess.isOwner) await loadEditors();
-    });
+watchEditorAccess(async (access) => {
+    currentAccess = access;
+    renderAccessState();
+    if (currentAccess.isOwner) await loadEditors();
 });
