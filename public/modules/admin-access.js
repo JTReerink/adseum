@@ -1,15 +1,22 @@
 import { auth, db } from '../firebase-config.js';
 import {
     GoogleAuthProvider,
+    isSignInWithEmailLink,
     onAuthStateChanged,
+    sendPasswordResetEmail,
+    sendSignInLinkToEmail,
+    signInWithEmailAndPassword,
+    signInWithEmailLink,
     signInWithPopup,
-    signOut
+    signOut,
+    updatePassword
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 export const OWNER_EMAIL = 'jareerink@gmail.com';
 
 const provider = new GoogleAuthProvider();
+const EMAIL_LINK_STORAGE_KEY = 'emailForSignIn';
 
 function normalizeEmail(email = '') {
     return email.trim().toLowerCase();
@@ -73,8 +80,90 @@ export function watchEditorAccess(callback) {
     });
 }
 
+/**
+ * Check if an email is authorized (owner or in admins collection).
+ * Returns { authorized, hasLoggedIn } or { authorized: false }.
+ */
+export async function checkEmailAuthorized(email) {
+    email = normalizeEmail(email);
+    if (isOwnerEmail(email)) {
+        return { authorized: true, hasLoggedIn: true };
+    }
+    try {
+        const accessDoc = await getDoc(doc(db, 'admins', email));
+        if (accessDoc.exists()) {
+            const data = accessDoc.data() || {};
+            return { authorized: true, hasLoggedIn: !!data.hasLoggedIn };
+        }
+    } catch (error) {
+        console.error('Error checking email authorization:', error);
+    }
+    return { authorized: false, hasLoggedIn: false };
+}
+
+/**
+ * Mark that a user has logged in at least once.
+ * Called after successful authentication.
+ */
+export async function markHasLoggedIn(email) {
+    email = normalizeEmail(email);
+    if (isOwnerEmail(email)) return;
+    try {
+        await setDoc(doc(db, 'admins', email), {
+            hasLoggedIn: true,
+            lastLoginAt: serverTimestamp()
+        }, { merge: true });
+    } catch (error) {
+        console.error('Error marking login:', error);
+    }
+}
+
 export function signInWithGoogle() {
     return signInWithPopup(auth, provider);
+}
+
+export function signInWithPassword(email, password) {
+    return signInWithEmailAndPassword(auth, email, password);
+}
+
+export async function sendEmailLink(email) {
+    const actionCodeSettings = {
+        url: window.location.href,
+        handleCodeInApp: true
+    };
+    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+    window.localStorage.setItem(EMAIL_LINK_STORAGE_KEY, email);
+}
+
+export async function completeEmailLinkSignIn() {
+    if (!isSignInWithEmailLink(auth, window.location.href)) return false;
+
+    let email = window.localStorage.getItem(EMAIL_LINK_STORAGE_KEY);
+    if (!email) {
+        email = window.prompt('Please enter your email address to confirm:');
+    }
+    if (!email) return false;
+
+    const result = await signInWithEmailLink(auth, email, window.location.href);
+    window.localStorage.removeItem(EMAIL_LINK_STORAGE_KEY);
+
+    // Clean the URL by removing sign-in query parameters
+    const url = new URL(window.location.href);
+    url.searchParams.delete('oobCode');
+    url.searchParams.delete('mode');
+    url.searchParams.delete('apiKey');
+    url.searchParams.delete('lang');
+    window.history.replaceState({}, '', url.toString());
+
+    return result;
+}
+
+export function sendPasswordReset(email) {
+    return sendPasswordResetEmail(auth, email);
+}
+
+export function setNewPassword(password) {
+    return updatePassword(auth.currentUser, password);
 }
 
 export function signOutCurrentUser() {
