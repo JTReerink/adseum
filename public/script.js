@@ -21,6 +21,7 @@ window.dotPalette = DEFAULT_SITE_CONTENT.dotPalette;
 let isFirstFetch = true;
 let resizeTimeout;
 let lettersReady = false;
+let siteContentReady = false;
 
 const navbar = document.getElementById('navbar');
 const navLogo = document.getElementById('nav-logo');
@@ -143,7 +144,7 @@ function buildSections(sections) {
         }
 
         const body = document.createElement('div');
-        body.className = 'cms-section-body rich-content max-w-2xl mx-auto text-left text-gray-700 text-lg md:text-xl leading-relaxed';
+        body.className = 'cms-section-body rich-content max-w-2xl mx-auto text-center text-gray-700 text-lg md:text-xl leading-relaxed';
         setRichContent(body, section.bodyHtml);
 
         inner.appendChild(heading);
@@ -200,29 +201,45 @@ function renderDynamicDotContent() {
 function handleRender() {
     renderStaticContent();
 
-    if (!lettersReady) {
+    if (!lettersReady || !siteContentReady) {
         return;
     }
 
-    renderDynamicDotContent();
-
     if (isFirstFetch) {
+        renderDynamicDotContent();
         initAnimations('#logo-grid');
         initScrollAnimations();
         initNavScrollAnimation();
         isFirstFetch = false;
+    } else if (window.isAnimationComplete === false) {
+        // Entrance animation is still playing — don't re-render dots or we'll kill it
+        return;
     } else {
+        renderDynamicDotContent();
+
         if (window.ScrollTrigger) {
             ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
             initScrollAnimations();
             initNavScrollAnimation();
         }
 
+        // Show dots in their final position without replaying the entrance animation
+        const logoDots = document.querySelectorAll('#logo-grid .dot-wrapper svg');
+        logoDots.forEach(dot => {
+            gsap.set(dot, { opacity: 1, x: 0, y: 0, scale: 1 });
+            const path = dot.querySelector('path');
+            if (path) {
+                const stdD = path.getAttribute('data-std-d');
+                if (stdD) gsap.set(path, { attr: { d: stdD } });
+                path._morphState = 'standard';
+            }
+        });
+
+        window.isAnimationComplete = true;
+
         if (window.updateWiggleTargets) {
             window.updateWiggleTargets();
         }
-
-        animateDots('#logo-grid');
     }
 }
 
@@ -302,6 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
     listenToSiteContent((content) => {
         window.siteContent = content;
         window.dotPalette = content.dotPalette || DEFAULT_SITE_CONTENT.dotPalette;
+        siteContentReady = true;
         handleRender();
     });
 
@@ -312,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
-            if (lettersReady) {
+            if (lettersReady && siteContentReady) {
                 handleRender();
             } else {
                 renderStaticContent();

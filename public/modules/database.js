@@ -124,13 +124,18 @@ export const DEFAULT_SITE_CONTENT = {
         subtitleHtml: '<p>Empowering Queer Art</p>'
     },
     sections: convertLegacySections(),
-    dotPalette: [...DEFAULT_DOT_PALETTE]
+    dotPalette: [...DEFAULT_DOT_PALETTE],
+    animationPause: 1.5,
+    animationSpeed: 1.0
 };
 
 export function normalizeSiteContent(data = {}) {
     const sections = Array.isArray(data.sections)
         ? data.sections.map((section) => createSection(section))
         : convertLegacySections(data.sections || {}, data.navigation || {});
+
+    const animationPause = typeof data.animationPause === 'number' ? data.animationPause : DEFAULT_SITE_CONTENT.animationPause;
+    const animationSpeed = typeof data.animationSpeed === 'number' ? data.animationSpeed : DEFAULT_SITE_CONTENT.animationSpeed;
 
     return {
         hero: {
@@ -140,7 +145,9 @@ export function normalizeSiteContent(data = {}) {
             )
         },
         sections: sections.length > 0 ? sections : DEFAULT_SITE_CONTENT.sections.map((section) => createSection(section)),
-        dotPalette: normalizeDotPalette(data.dotPalette)
+        dotPalette: normalizeDotPalette(data.dotPalette),
+        animationPause: Math.max(0, Math.min(10, animationPause)),
+        animationSpeed: Math.max(0.1, Math.min(5, animationSpeed))
     };
 }
 

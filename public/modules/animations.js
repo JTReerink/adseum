@@ -88,7 +88,13 @@ export const animateDots = (container = document) => {
         window.isAnimationComplete = false;
     }
     console.log("animateDots triggered for:", container);
+
+    const siteContent = window.siteContent || {};
+    const animationPause = typeof siteContent.animationPause === 'number' ? siteContent.animationPause : 1.5;
+    const animationSpeed = typeof siteContent.animationSpeed === 'number' ? siteContent.animationSpeed : 1.0;
+
     const tl = gsap.timeline();
+    tl.timeScale(animationSpeed);
 
     if (!parent) return;
 
@@ -180,7 +186,7 @@ export const animateDots = (container = document) => {
                     amount: 1,
                     from: "random"
                 }
-            }, "+=1.5") // Wait 1.5 seconds (Stay big a little longer)
+            }, `+=${animationPause}`) // Configurable pause before converging
             .to(inkDots, {
                 duration: 3.5, // Slower shrink
                 width: (i, target) => target.getAttribute('data-std-size'),

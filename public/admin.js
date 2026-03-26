@@ -46,6 +46,8 @@ const editorForm = document.getElementById('editor-form');
 const editorEmailInput = document.getElementById('editor-email');
 const editorNotice = document.getElementById('editor-notice');
 const previewFrame = document.getElementById('preview-frame');
+const animationPauseInput = document.getElementById('animation-pause');
+const animationSpeedInput = document.getElementById('animation-speed');
 const refreshPreviewButton = document.getElementById('refresh-preview-button');
 const toastEl = document.getElementById('cms-toast');
 
@@ -473,6 +475,8 @@ saveContentButton.addEventListener('click', async () => {
             bodyHtml: sanitizeRichHtml(section.bodyHtml)
         })),
         dotPalette: siteContent.dotPalette || DEFAULT_SITE_CONTENT.dotPalette,
+        animationPause: Math.max(0, Math.min(10, parseFloat(siteContent.animationPause) || 1.5)),
+        animationSpeed: Math.max(0.1, Math.min(5, parseFloat(siteContent.animationSpeed) || 1.0)),
         updatedAt: serverTimestamp(),
         updatedBy: currentAccess.email
     };
@@ -666,6 +670,14 @@ document.addEventListener('click', (event) => {
 
 heroSubtitleEditor.addEventListener('input', syncHeroEditor);
 
+animationPauseInput.addEventListener('input', () => {
+    siteContent.animationPause = parseFloat(animationPauseInput.value) || 1.5;
+});
+
+animationSpeedInput.addEventListener('input', () => {
+    siteContent.animationSpeed = parseFloat(animationSpeedInput.value) || 1.0;
+});
+
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -677,6 +689,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     heroSubtitleEditor.innerHTML = siteContent.hero.subtitleHtml;
+    animationPauseInput.value = siteContent.animationPause ?? 1.5;
+    animationSpeedInput.value = siteContent.animationSpeed ?? 1.0;
     renderSections();
     setNotice(contentNotice, 'Ready to publish. Your changes won\'t go live until you click Publish.');
     setNotice(editorNotice, 'Only approved accounts can edit the website.');
