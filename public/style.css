@@ -49,6 +49,7 @@ body {
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+    scroll-behavior: smooth;
 }
 
 @supports (overflow: clip) {
@@ -337,6 +338,7 @@ body:not(.intro-complete) .subtitle-anim {
     font-size: 1.125rem;
     line-height: 1.85;
     max-width: 38em;
+    font-family: 'Minion Pro', serif;
 }
 
 .rich-content ul,

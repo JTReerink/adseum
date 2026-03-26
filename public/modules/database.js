@@ -6,6 +6,7 @@ import {
     getDoc,
     onSnapshot
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.0.6/+esm';
 
 const DEFAULT_SECTION_BODIES = {
     about: '<p>Placeholder for About Us content. We are dedicated to empowering queer art through dynamic digital experiences.</p>',
@@ -65,31 +66,12 @@ export function sanitizeRichHtml(html = '') {
     if (typeof document === 'undefined') {
         return html;
     }
-
-    const template = document.createElement('template');
-    template.innerHTML = html;
-
-    template.content.querySelectorAll('script, style, iframe, object, embed').forEach((node) => {
-        node.remove();
-    });
-
-    template.content.querySelectorAll('*').forEach((element) => {
-        [...element.attributes].forEach((attribute) => {
-            const name = attribute.name.toLowerCase();
-            const value = attribute.value || '';
-
-            if (name.startsWith('on')) {
-                element.removeAttribute(attribute.name);
-                return;
-            }
-
-            if ((name === 'href' || name === 'src') && value.trim().toLowerCase().startsWith('javascript:')) {
-                element.removeAttribute(attribute.name);
-            }
-        });
-    });
-
-    return template.innerHTML.trim();
+    
+    // Using DOMPurify to securely sanitize inputs
+    return DOMPurify.sanitize(html, {
+        USE_PROFILES: { html: true },
+        FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed']
+    }).trim();
 }
 
 export function createSection(overrides = {}) {

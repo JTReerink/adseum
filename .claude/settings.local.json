@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where serve:*)",
+      "Bash(ls E:/Projects/ADseum/node_modules/.bin/serve*)",
+      "Bash(node -e \"console.log\\(require.resolve\\(''serve''\\)\\)\")",
+      "Bash(npm install:*)",
+      "Bash(npx which:*)",
+      "Bash(node -e \"const p = require\\(''./node_modules/serve/package.json''\\); console.log\\(p.main || p.bin\\)\")",
+      "Bash(node -e \"console.log\\(require.resolve\\(''serve/build/main.js''\\)\\)\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(taskkill //F //IM serve.exe)",
+      "Bash(firebase deploy:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}
