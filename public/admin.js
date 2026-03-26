@@ -419,7 +419,7 @@ async function loadEditors() {
 
 function renderAccessState() {
     if (!currentAccess.user) {
-        // Auth guard handles redirect, but just in case
+        window.location.replace('/login?redirect=' + encodeURIComponent(window.location.pathname));
         return;
     }
 
