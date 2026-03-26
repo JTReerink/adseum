@@ -42,14 +42,41 @@
                     </button>
                 </form>
 
-                <!-- Step 2: choose method -->
+                <!-- Not authorized -->
+                <div id="not-authorized" class="hidden w-full flex flex-col gap-3">
+                    <div class="rounded-lg bg-red-50 border border-red-100 p-4">
+                        <p class="text-sm text-red-700">
+                            This email address is not authorized. Ask the site owner to invite you first.
+                        </p>
+                    </div>
+                    <button id="back-from-denied" type="button" class="cms-btn cms-btn-secondary w-full justify-center py-3">
+                        Try a different email
+                    </button>
+                </div>
+
+                <!-- First-time user: email link only -->
+                <div id="first-time-step" class="hidden w-full flex flex-col gap-3">
+                    <p class="text-sm text-gray-500">
+                        Signing in as <strong id="first-time-email-label"></strong>
+                        <button id="change-email-first" type="button" class="text-gray-400 hover:text-gray-700 underline ml-1 text-xs">change</button>
+                    </p>
+                    <div class="rounded-lg bg-blue-50 border border-blue-100 p-4">
+                        <p class="text-sm text-blue-700">
+                            This is your first time signing in. Use the sign-in link below to activate your account. You can set a password afterwards.
+                        </p>
+                    </div>
+                    <button id="send-link-first" type="button" class="cms-btn cms-btn-primary w-full justify-center py-3">
+                        Send sign-in link via email
+                    </button>
+                </div>
+
+                <!-- Returning user: password + email link -->
                 <div id="method-step" class="hidden w-full flex flex-col gap-3">
                     <p class="text-sm text-gray-500">
                         Signing in as <strong id="method-email-label"></strong>
                         <button id="change-email" type="button" class="text-gray-400 hover:text-gray-700 underline ml-1 text-xs">change</button>
                     </p>
 
-                    <!-- Password option -->
                     <form id="password-form" class="w-full flex flex-col gap-2">
                         <input id="password-input" type="password" class="cms-input w-full text-center"
                             placeholder="Password" required>
@@ -57,20 +84,47 @@
                             Sign in with password
                         </button>
                     </form>
+                    <button id="forgot-password-btn" type="button" class="text-sm text-gray-400 hover:text-gray-700 transition">
+                        Forgot your password?
+                    </button>
 
                     <div class="w-full flex items-center gap-3 text-gray-300">
                         <hr class="flex-1 border-gray-200"><span class="text-xs uppercase tracking-wider">or</span>
                         <hr class="flex-1 border-gray-200">
                     </div>
 
-                    <!-- Email link option -->
                     <button id="send-link-btn" type="button" class="cms-btn cms-btn-secondary w-full justify-center py-3">
                         Send sign-in link via email
                     </button>
                 </div>
 
+                <!-- Set password (after email link sign-in) -->
+                <div id="set-password-step" class="hidden w-full flex flex-col gap-3">
+                    <div class="rounded-lg bg-green-50 border border-green-100 p-4">
+                        <p class="text-sm text-green-700">
+                            You're signed in! Would you like to set a password for future logins?
+                        </p>
+                    </div>
+                    <form id="set-password-form" class="w-full flex flex-col gap-2">
+                        <input id="new-password-input" type="password" class="cms-input w-full text-center"
+                            placeholder="Choose a password" required minlength="6">
+                        <input id="confirm-password-input" type="password" class="cms-input w-full text-center"
+                            placeholder="Confirm password" required minlength="6">
+                        <button type="submit" class="cms-btn cms-btn-primary w-full justify-center py-3">
+                            Set password
+                        </button>
+                    </form>
+                    <button id="skip-password" type="button" class="text-sm text-gray-400 hover:text-gray-700 transition">
+                        Skip for now
+                    </button>
+                </div>
+
+                <!-- Status messages -->
                 <p id="email-link-sent" class="hidden text-sm text-green-600">
                     Link sent! Check your inbox and click the link to sign in.
+                </p>
+                <p id="reset-link-sent" class="hidden text-sm text-green-600">
+                    Password reset email sent! Check your inbox.
                 </p>
 
                 <a href="/" class="text-sm text-gray-400 hover:text-gray-700 transition">View live website</a>

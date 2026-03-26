@@ -3,13 +3,15 @@ import {
     GoogleAuthProvider,
     isSignInWithEmailLink,
     onAuthStateChanged,
+    sendPasswordResetEmail,
     sendSignInLinkToEmail,
     signInWithEmailAndPassword,
     signInWithEmailLink,
     signInWithPopup,
-    signOut
+    signOut,
+    updatePassword
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 export const OWNER_EMAIL = 'jareerink@gmail.com';
 
@@ -78,6 +80,44 @@ export function watchEditorAccess(callback) {
     });
 }
 
+/**
+ * Check if an email is authorized (owner or in admins collection).
+ * Returns { authorized, hasLoggedIn } or { authorized: false }.
+ */
+export async function checkEmailAuthorized(email) {
+    email = normalizeEmail(email);
+    if (isOwnerEmail(email)) {
+        return { authorized: true, hasLoggedIn: true };
+    }
+    try {
+        const accessDoc = await getDoc(doc(db, 'admins', email));
+        if (accessDoc.exists()) {
+            const data = accessDoc.data() || {};
+            return { authorized: true, hasLoggedIn: !!data.hasLoggedIn };
+        }
+    } catch (error) {
+        console.error('Error checking email authorization:', error);
+    }
+    return { authorized: false, hasLoggedIn: false };
+}
+
+/**
+ * Mark that a user has logged in at least once.
+ * Called after successful authentication.
+ */
+export async function markHasLoggedIn(email) {
+    email = normalizeEmail(email);
+    if (isOwnerEmail(email)) return;
+    try {
+        await setDoc(doc(db, 'admins', email), {
+            hasLoggedIn: true,
+            lastLoginAt: serverTimestamp()
+        }, { merge: true });
+    } catch (error) {
+        console.error('Error marking login:', error);
+    }
+}
+
 export function signInWithGoogle() {
     return signInWithPopup(auth, provider);
 }
@@ -116,6 +156,14 @@ export async function completeEmailLinkSignIn() {
     window.history.replaceState({}, '', url.toString());
 
     return result;
+}
+
+export function sendPasswordReset(email) {
+    return sendPasswordResetEmail(auth, email);
+}
+
+export function setNewPassword(password) {
+    return updatePassword(auth.currentUser, password);
 }
 
 export function signOutCurrentUser() {

@@ -22,8 +22,8 @@ service cloud.firestore {
     }
 
     match /admins/{email} {
-      allow get: if hasVerifiedEmail()
-        && (isOwner() || email == request.auth.token.email);
+      // Allow unauthenticated get so login page can check if email is authorized
+      allow get: if true;
       allow list: if isOwner();
       allow create, update, delete: if isOwner();
     }
