@@ -22,10 +22,17 @@ service cloud.firestore {
     }
 
     match /admins/{email} {
-      allow get: if hasVerifiedEmail()
-        && (isOwner() || email == request.auth.token.email);
+      // Allow unauthenticated get so login page can check if email is authorized
+      allow get: if true;
       allow list: if isOwner();
-      allow create, update, delete: if isOwner();
+      allow create, delete: if isOwner();
+      // Allow owner full updates; allow editors to update their own login tracking fields
+      allow update: if isOwner()
+        || (
+          hasVerifiedEmail()
+          && email == request.auth.token.email
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hasLoggedIn', 'lastLoginAt'])
+        );
     }
 
     match /letters/{letterId} {
