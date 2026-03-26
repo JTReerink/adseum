@@ -7,10 +7,10 @@ import {
     normalizeHexColor
 } from './modules/database.js';
 import {
-    signInWithGoogle,
     signOutCurrentUser,
     watchEditorAccess
 } from './modules/admin-access.js';
+import { requireAuth } from './modules/auth-guard.js';
 import {
     collection,
     deleteDoc,
@@ -19,6 +19,9 @@ import {
     serverTimestamp,
     setDoc
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+// Redirect to login page if not authenticated
+await requireAuth();
 
 window.letters = window.letters || {};
 window.letterColors = window.letterColors || {};
@@ -50,7 +53,6 @@ const selectedLetterStatus = document.getElementById('selected-letter-status');
 const rowsInput = document.getElementById('grid-rows');
 const colsInput = document.getElementById('grid-cols');
 const authStatus = document.getElementById('auth-status');
-const signInButton = document.getElementById('sign-in-button');
 const signOutButton = document.getElementById('sign-out-button');
 const saveButton = document.getElementById('save-button');
 const deleteButton = document.getElementById('delete-button');
@@ -303,21 +305,17 @@ function setEditorEnabled(enabled) {
 
 function renderAuthState() {
     if (!currentAccess.user) {
-        authStatus.textContent = 'Sign in with your Google account to start designing letters.';
-        signInButton.classList.remove('hidden');
-        signOutButton.classList.add('hidden');
-        setEditorEnabled(false);
+        // Auth guard handles redirect
         return;
     }
 
-    signInButton.classList.add('hidden');
     signOutButton.classList.remove('hidden');
 
     if (currentAccess.canEdit) {
         authStatus.textContent = `Signed in as ${currentAccess.email}.`;
         setEditorEnabled(true);
     } else {
-        authStatus.textContent = `Signed in as ${currentAccess.email}, but this account hasn't been approved yet. Ask the site owner to invite you.`;
+        authStatus.textContent = `Signed in as ${currentAccess.email}, but this account hasn't been approved yet.`;
         setEditorEnabled(false);
     }
 }
@@ -818,14 +816,6 @@ window.deleteLetter = async function deleteLetter() {
     }
 };
 
-signInButton.addEventListener('click', async () => {
-    try {
-        await signInWithGoogle();
-    } catch (error) {
-        console.error('Error signing in:', error);
-        window.alert('Google sign-in failed. Make sure Google sign-in is enabled in Firebase Authentication.');
-    }
-});
 
 signOutButton.addEventListener('click', async () => {
     try {

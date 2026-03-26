@@ -1,10 +1,10 @@
 import { db } from './firebase-config.js';
 import {
     OWNER_EMAIL,
-    signInWithGoogle,
     signOutCurrentUser,
     watchEditorAccess
 } from './modules/admin-access.js';
+import { requireAuth } from './modules/auth-guard.js';
 import {
     DEFAULT_SITE_CONTENT,
     createSection,
@@ -24,8 +24,10 @@ import {
     setDoc
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
+// Redirect to login page if not authenticated
+await requireAuth();
+
 /* ── DOM refs ── */
-const authGate = document.getElementById('auth-gate');
 const accessDenied = document.getElementById('access-denied');
 const adminApp = document.getElementById('admin-app');
 const publishBar = document.getElementById('publish-bar');
@@ -51,8 +53,6 @@ const animationSpeedInput = document.getElementById('animation-speed');
 const refreshPreviewButton = document.getElementById('refresh-preview-button');
 const toastEl = document.getElementById('cms-toast');
 
-const signInButtons = [...document.querySelectorAll('[data-auth-action="sign-in"]')];
-
 /* ── State ── */
 let currentAccess = { user: null, email: '', canEdit: false, isOwner: false, role: null };
 let siteContent = structuredClone(DEFAULT_SITE_CONTENT);
@@ -77,11 +77,9 @@ function setNotice(element, message, isError = false) {
 }
 
 function showShell(view) {
-    authGate.classList.toggle('cms-shell-hidden', view !== 'gate');
     accessDenied.classList.toggle('cms-shell-hidden', view !== 'denied');
     adminApp.classList.toggle('cms-shell-hidden', view !== 'app');
     publishBar.classList.toggle('cms-shell-hidden', view !== 'app');
-    document.body.classList.remove('admin-pending');
 }
 
 function refreshPreview() {
@@ -421,7 +419,7 @@ async function loadEditors() {
 
 function renderAccessState() {
     if (!currentAccess.user) {
-        showShell('gate');
+        // Auth guard handles redirect, but just in case
         return;
     }
 
@@ -544,16 +542,6 @@ editorForm.addEventListener('submit', async (event) => {
 });
 
 /* ── Event listeners ── */
-signInButtons.forEach((btn) => {
-    btn.addEventListener('click', async () => {
-        try { await signInWithGoogle(); }
-        catch (error) {
-            console.error('Error signing in:', error);
-            showToast('Sign-in failed. Please make sure pop-ups are allowed.', 'error');
-        }
-    });
-});
-
 [signOutButton, deniedSignOut].forEach((btn) => {
     btn.addEventListener('click', async () => {
         try { await signOutCurrentUser(); }

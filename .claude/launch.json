@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "dev",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["node_modules/serve/build/main.js", "public", "-l", "3999", "--no-clipboard"],
-      "port": 3999
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "public", "--no-clipboard"],
+      "port": 3999,
+      "autoPort": true
     },
     {
       "name": "Firebase Hosting",
