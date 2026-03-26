@@ -86,7 +86,7 @@ function showShell(view) {
 
 function refreshPreview() {
     if (previewFrame) {
-        previewFrame.src = '/index.html?t=' + Date.now();
+        previewFrame.src = '/?t=' + Date.now();
     }
 }
 
