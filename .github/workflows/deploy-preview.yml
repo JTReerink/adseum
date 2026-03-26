@@ -1,0 +1,16 @@
+name: Deploy to Firebase Preview
+on:
+  push:
+    branches-ignore:
+      - main
+jobs:
+  build_and_preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npm run build:css
+      - name: Create Firebase Preview Channel
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: npx firebase-tools hosting:channel:deploy ${{ github.ref_name }} --project adseum-53dcd

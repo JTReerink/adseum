@@ -253,6 +253,7 @@ function initNavbar() {
         hamburgerButton.setAttribute('aria-expanded', 'false');
         mobileMenu.classList.remove('visible');
         mobileMenu.setAttribute('aria-hidden', 'true');
+        if (sectionsRoot) sectionsRoot.removeAttribute('inert');
     };
 
     const openMobileMenu = () => {
@@ -262,6 +263,7 @@ function initNavbar() {
         hamburgerButton.setAttribute('aria-expanded', 'true');
         mobileMenu.classList.add('visible');
         mobileMenu.setAttribute('aria-hidden', 'false');
+        if (sectionsRoot) sectionsRoot.setAttribute('inert', '');
     };
 
     const toggleMobileMenu = () => {
