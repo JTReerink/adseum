@@ -13,7 +13,13 @@
       "Bash(firebase deploy:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r \"toLowerCase\\\\|toUpperCase\\\\|normalize\" /e/Projects/ADseum/public/modules/*.js /e/Projects/ADseum/public/login.js /e/Projects/ADseum/public/admin.js)",
+      "Bash(/tmp/auth_analysis.txt:*)",
+      "Read(//tmp/**)",
+      "Bash(npx firebase-tools:*)"
     ]
   }
 }
