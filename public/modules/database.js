@@ -108,7 +108,9 @@ export const DEFAULT_SITE_CONTENT = {
     sections: convertLegacySections(),
     dotPalette: [...DEFAULT_DOT_PALETTE],
     animationPause: 1.5,
-    animationSpeed: 1.0
+    animationSpeed: 1.0,
+    contactEmail: '',
+    contactSubtext: ''
 };
 
 export function normalizeSiteContent(data = {}) {
@@ -129,7 +131,9 @@ export function normalizeSiteContent(data = {}) {
         sections: sections.length > 0 ? sections : DEFAULT_SITE_CONTENT.sections.map((section) => createSection(section)),
         dotPalette: normalizeDotPalette(data.dotPalette),
         animationPause: Math.max(0, Math.min(10, animationPause)),
-        animationSpeed: Math.max(0.1, Math.min(5, animationSpeed))
+        animationSpeed: Math.max(0.1, Math.min(5, animationSpeed)),
+        contactEmail: typeof data.contactEmail === 'string' ? data.contactEmail.trim() : '',
+        contactSubtext: typeof data.contactSubtext === 'string' ? data.contactSubtext.trim() : ''
     };
 }
 

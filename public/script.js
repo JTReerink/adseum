@@ -100,6 +100,34 @@ function buildNavigation(sections) {
     });
 }
 
+function buildContactEmail(container) {
+    const content = getSiteContent();
+    const email = content.contactEmail;
+    if (!email || !email.includes('@')) return;
+
+    const atIndex = email.indexOf('@');
+    const user = email.substring(0, atIndex);
+    const domain = email.substring(atIndex + 1);
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'contact-email-wrapper';
+
+    if (content.contactSubtext) {
+        const subtext = document.createElement('p');
+        subtext.className = 'contact-subtext';
+        subtext.textContent = content.contactSubtext;
+        wrapper.appendChild(subtext);
+    }
+
+    const link = document.createElement('a');
+    link.href = 'mailto:' + user + '@' + domain;
+    link.className = 'contact-email-link';
+    link.textContent = user + '@' + domain;
+    wrapper.appendChild(link);
+
+    container.appendChild(wrapper);
+}
+
 function buildSections(sections) {
     sectionsRoot.innerHTML = '';
 
@@ -149,6 +177,11 @@ function buildSections(sections) {
 
         inner.appendChild(heading);
         inner.appendChild(body);
+
+        if (section.id === 'contact') {
+            buildContactEmail(inner);
+        }
+
         sectionElement.appendChild(inner);
         sectionsRoot.appendChild(sectionElement);
     });
