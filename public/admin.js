@@ -48,8 +48,6 @@ const editorForm = document.getElementById('editor-form');
 const editorEmailInput = document.getElementById('editor-email');
 const editorNotice = document.getElementById('editor-notice');
 const previewFrame = document.getElementById('preview-frame');
-const contactEmailInput = document.getElementById('contact-email');
-const contactSubtextInput = document.getElementById('contact-subtext');
 const animationPauseInput = document.getElementById('animation-pause');
 const animationSpeedInput = document.getElementById('animation-speed');
 const refreshPreviewButton = document.getElementById('refresh-preview-button');
@@ -270,6 +268,23 @@ function renderSections() {
                             data-section-rich-field="bodyHtml" data-placeholder="Write your section content here...">${sanitizeRichHtml(section.bodyHtml)}</div>
                     </div>
                 </div>
+
+                ${section.id === 'contact' ? `
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <p class="cms-field-label mb-1">Contact email</p>
+                    <p class="cms-field-help mb-3">The email shown below the section content as a clickable mailto link. Protected from spam bots.</p>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <label class="block">
+                            <span class="cms-field-label">Display email</span>
+                            <input type="email" class="cms-input" value="${escapeHtml(siteContent.contactEmail || '')}" data-contact-field="contactEmail" placeholder="info@adseum.nl">
+                        </label>
+                        <label class="block">
+                            <span class="cms-field-label">Contact subtext</span>
+                            <input type="text" class="cms-input" value="${escapeHtml(siteContent.contactSubtext || '')}" data-contact-field="contactSubtext" placeholder="Reach out to collaborate with us.">
+                        </label>
+                    </div>
+                </div>
+                ` : ''}
             </div>
         </article>
     `}).join('');
@@ -594,6 +609,11 @@ sectionsList.addEventListener('input', (event) => {
     if (!card) return;
     const index = Number(card.dataset.sectionIndex);
 
+    if (event.target.matches('[data-contact-field]')) {
+        siteContent[event.target.dataset.contactField] = event.target.value.trim();
+        return;
+    }
+
     if (event.target.matches('[data-section-field]')) {
         updateSectionField(index, event.target.dataset.sectionField, event.target.type === 'checkbox' ? event.target.checked : event.target.value);
         return;
@@ -667,14 +687,6 @@ document.addEventListener('click', (event) => {
 
 heroSubtitleEditor.addEventListener('input', syncHeroEditor);
 
-contactEmailInput.addEventListener('input', () => {
-    siteContent.contactEmail = contactEmailInput.value.trim();
-});
-
-contactSubtextInput.addEventListener('input', () => {
-    siteContent.contactSubtext = contactSubtextInput.value.trim();
-});
-
 animationPauseInput.addEventListener('input', () => {
     siteContent.animationPause = parseFloat(animationPauseInput.value) || 1.5;
 });
@@ -693,8 +705,6 @@ try {
 }
 
 heroSubtitleEditor.innerHTML = siteContent.hero.subtitleHtml;
-contactEmailInput.value = siteContent.contactEmail || '';
-contactSubtextInput.value = siteContent.contactSubtext || '';
 animationPauseInput.value = siteContent.animationPause ?? 1.5;
 animationSpeedInput.value = siteContent.animationSpeed ?? 1.0;
 renderSections();
