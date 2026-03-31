@@ -48,6 +48,8 @@ const editorForm = document.getElementById('editor-form');
 const editorEmailInput = document.getElementById('editor-email');
 const editorNotice = document.getElementById('editor-notice');
 const previewFrame = document.getElementById('preview-frame');
+const contactEmailInput = document.getElementById('contact-email');
+const contactSubtextInput = document.getElementById('contact-subtext');
 const animationPauseInput = document.getElementById('animation-pause');
 const animationSpeedInput = document.getElementById('animation-speed');
 const refreshPreviewButton = document.getElementById('refresh-preview-button');
@@ -480,6 +482,8 @@ saveContentButton.addEventListener('click', async () => {
         dotPalette: siteContent.dotPalette || DEFAULT_SITE_CONTENT.dotPalette,
         animationPause: Math.max(0, Math.min(10, parseFloat(siteContent.animationPause) || 1.5)),
         animationSpeed: Math.max(0.1, Math.min(5, parseFloat(siteContent.animationSpeed) || 1.0)),
+        contactEmail: (siteContent.contactEmail || '').trim(),
+        contactSubtext: (siteContent.contactSubtext || '').trim(),
         updatedAt: serverTimestamp(),
         updatedBy: currentAccess.email
     };
@@ -663,6 +667,14 @@ document.addEventListener('click', (event) => {
 
 heroSubtitleEditor.addEventListener('input', syncHeroEditor);
 
+contactEmailInput.addEventListener('input', () => {
+    siteContent.contactEmail = contactEmailInput.value.trim();
+});
+
+contactSubtextInput.addEventListener('input', () => {
+    siteContent.contactSubtext = contactSubtextInput.value.trim();
+});
+
 animationPauseInput.addEventListener('input', () => {
     siteContent.animationPause = parseFloat(animationPauseInput.value) || 1.5;
 });
@@ -681,6 +693,8 @@ try {
 }
 
 heroSubtitleEditor.innerHTML = siteContent.hero.subtitleHtml;
+contactEmailInput.value = siteContent.contactEmail || '';
+contactSubtextInput.value = siteContent.contactSubtext || '';
 animationPauseInput.value = siteContent.animationPause ?? 1.5;
 animationSpeedInput.value = siteContent.animationSpeed ?? 1.0;
 renderSections();
