@@ -1,5 +1,5 @@
 import { renderText } from './modules/renderer.js';
-import { animateDots, initAnimations, initScrollAnimations, initNavScrollAnimation } from './modules/animations.js';
+import { animateDots, initAnimations, initScrollAnimations, initNavScrollAnimation, initDotReverseAnimation } from './modules/animations.js';
 import {
     DEFAULT_SITE_CONTENT,
     listenToLetters,
@@ -243,6 +243,7 @@ function handleRender() {
         initAnimations('#logo-grid');
         initScrollAnimations();
         initNavScrollAnimation();
+        initDotReverseAnimation();
         isFirstFetch = false;
     } else if (window.isAnimationComplete === false) {
         // Entrance animation is still playing — don't re-render dots or we'll kill it
@@ -254,6 +255,7 @@ function handleRender() {
             ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
             initScrollAnimations();
             initNavScrollAnimation();
+            initDotReverseAnimation();
         }
 
         // Show dots in their final position without replaying the entrance animation

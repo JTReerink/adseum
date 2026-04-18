@@ -310,6 +310,116 @@ export const initNavScrollAnimation = () => {
     }, 0.2);
 };
 
+export const initDotReverseAnimation = () => {
+    // Remove any overlay from a previous call (e.g. on re-render)
+    document.querySelector('[data-dot-reverse]')?.remove();
+
+    const logoGrid = document.getElementById('logo-grid');
+    if (!logoGrid) return;
+
+    const inkDots = Array.from(logoGrid.querySelectorAll('.dot-wrapper svg[data-type="ink"]'));
+    if (!inkDots.length) return;
+
+    // Fixed overlay sits below the flying logo (z-index 51) and navbar (z-index 100).
+    // Hidden until the intro animation finishes so clones don't appear during the ink-to-dots sequence.
+    const overlayEl = document.createElement('div');
+    overlayEl.setAttribute('data-dot-reverse', '');
+    overlayEl.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:49;overflow:visible;opacity:0;';
+    document.body.appendChild(overlayEl);
+
+    // Pre-create clones off-screen; positions and tweens are set in revealOverlay once the
+    // intro is done and getBoundingClientRect() reflects the dots' true settled positions.
+    const cloneData = inkDots.map(svg => {
+        const path = svg.querySelector('path');
+        const inkD = path?.getAttribute('data-ink-d');
+        const stdD = path?.getAttribute('data-std-d');
+        const inkSize = parseFloat(svg.getAttribute('data-ink-size'));
+        const stdSize = parseFloat(svg.getAttribute('data-std-size'));
+        if (!path || !inkD || !stdD || !inkSize || !stdSize) return null;
+
+        const clone = svg.cloneNode(true);
+        const clonePath = clone.querySelector('path');
+        overlayEl.appendChild(clone);
+        gsap.set(clone, { position: 'absolute', left: -9999, top: -9999, opacity: 0 });
+
+        return { svg, path, clone, clonePath, inkD, stdD, inkSize, stdSize };
+    }).filter(Boolean);
+
+    // Scrubbed timeline — tweens added in revealOverlay after measuring final positions
+    const tl = gsap.timeline({
+        scrollTrigger: {
+            trigger: '#hero',
+            start: 'top top',
+            end: 'bottom top',
+            scrub: 1,
+        },
+    });
+
+    const revealOverlay = () => {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+
+        cloneData.forEach(({ svg, clone, clonePath, inkD, stdD, inkSize, stdSize }) => {
+            // Measure the dot's exact screen position now that the intro has fully settled
+            const rect = svg.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+
+            gsap.set(clone, {
+                left: cx - stdSize / 2,
+                top: cy - stdSize / 2,
+                width: stdSize,
+                height: stdSize,
+                x: 0,
+                y: 0,
+                scale: 1,
+                opacity: 1,
+                transformOrigin: 'center center',
+            });
+            if (clonePath && stdD) gsap.set(clonePath, { attr: { d: stdD } });
+
+            const inkScale = inkSize / stdSize;
+            const targetCX = inkSize / 2 + Math.random() * (vw - inkSize);
+            const targetCY = inkSize / 2 + Math.random() * (vh - inkSize);
+            const targetX = targetCX - cx;
+            const targetY = targetCY - cy;
+
+            tl.to(clone, {
+                opacity: 0.3,
+                scale: inkScale,
+                x: targetX,
+                y: targetY,
+                duration: 1,
+                ease: 'power3.inOut',
+            }, 0);
+
+            if (clonePath && inkD) {
+                tl.to(clonePath, {
+                    attr: { d: inkD },
+                    duration: 1,
+                    ease: 'power2.inOut',
+                }, 0);
+            }
+        });
+
+        // Show overlay and hide originals in the same paint — no gap, no jump
+        gsap.set(overlayEl, { opacity: 1 });
+        inkDots.forEach(svg => gsap.set(svg, { opacity: 0 }));
+    };
+
+    if (document.body.classList.contains('intro-complete')) {
+        revealOverlay();
+    } else {
+        const observer = new MutationObserver(() => {
+            if (document.body.classList.contains('intro-complete')) {
+                observer.disconnect();
+                revealOverlay();
+            }
+        });
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    }
+};
+
 export const initScrollAnimations = () => {
     gsap.registerPlugin(ScrollTrigger);
 
