@@ -18,6 +18,18 @@ export const OWNER_EMAIL = 'jareerink@gmail.com';
 const provider = new GoogleAuthProvider();
 const EMAIL_LINK_STORAGE_KEY = 'emailForSignIn';
 
+function getCanonicalAuthUrl() {
+    const url = new URL(window.location.href);
+
+    // Firebase Auth usually trusts localhost for local development,
+    // while 127.0.0.1 may be treated as a separate unauthorized domain.
+    if (url.hostname === '127.0.0.1') {
+        url.hostname = 'localhost';
+    }
+
+    return url.toString();
+}
+
 function normalizeEmail(email = '') {
     return email.trim().toLowerCase();
 }
@@ -128,7 +140,7 @@ export function signInWithPassword(email, password) {
 
 export async function sendEmailLink(email) {
     const actionCodeSettings = {
-        url: window.location.href,
+        url: getCanonicalAuthUrl(),
         handleCodeInApp: true
     };
     await sendSignInLinkToEmail(auth, email, actionCodeSettings);

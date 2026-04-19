@@ -1,4 +1,3 @@
-import { WIGGLE_DIST, rand } from './config.js';
 
 const getHeroScrollProgress = () => {
     const hero = document.getElementById('hero');
@@ -232,7 +231,7 @@ export const animateDots = (container = document) => {
                 window.isAnimationComplete = true; // Enable interaction main logo
                 revealIntroChrome();
                 // Refresh ScrollTrigger now that the viewport is stable and the
-                // logo is in its final resting position — fixes cold-start sizing issues
+                // logo is in its final resting position â€” fixes cold-start sizing issues
                 if (window.ScrollTrigger) ScrollTrigger.refresh();
             }
         }
@@ -285,12 +284,12 @@ export const initNavScrollAnimation = () => {
                 }
             },
             onLeave: () => {
-                // Logo has landed at nav corner — swap to nav logo instantly
+                // Logo has landed at nav corner â€” swap to nav logo instantly
                 navLogoEl.style.opacity = '1';
                 gsap.set(logoGrid, { opacity: 0 });
             },
             onEnterBack: () => {
-                // User scrolled back into hero — restore hero logo
+                // User scrolled back into hero â€” restore hero logo
                 navLogoEl.style.opacity = '0';
                 gsap.set(logoGrid, { opacity: 1 });
             },
@@ -350,7 +349,7 @@ export const initDotReverseAnimation = () => {
         return { svg, path, clone, clonePath, inkD, stdD, inkSize, stdSize };
     }).filter(Boolean);
 
-    // Scrubbed timeline — tweens added in revealOverlay after measuring final positions
+    // Scrubbed timeline â€” tweens added in revealOverlay after measuring final positions
     const tl = gsap.timeline({
         scrollTrigger: {
             trigger: '#hero',
@@ -407,7 +406,7 @@ export const initDotReverseAnimation = () => {
             }
         });
 
-        // Show overlay and hide originals in the same paint — no gap, no jump
+        // Show overlay and hide originals in the same paint â€” no gap, no jump
         gsap.set(overlayEl, { opacity: 1 });
         inkDots.forEach(svg => gsap.set(svg, { opacity: 0 }));
     };

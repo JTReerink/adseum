@@ -1,13 +1,3 @@
-import { renderText } from './modules/renderer.js';
-import { animateDots, initAnimations, initScrollAnimations, initNavScrollAnimation, initDotReverseAnimation } from './modules/animations.js';
-import {
-    DEFAULT_SITE_CONTENT,
-    isContactSection,
-    listenToLetters,
-    listenToSiteContent,
-    sanitizeRichHtml,
-    validateDotText
-} from './modules/database.js';
 
 window.renderText = renderText;
 window.animateDots = animateDots;
@@ -312,7 +302,7 @@ function handleRender() {
         initDotReverseAnimation();
         isFirstFetch = false;
     } else if (window.isAnimationComplete === false) {
-        // Entrance animation is still playing — don't re-render dots or we'll kill it
+        // Entrance animation is still playing â€” don't re-render dots or we'll kill it
         return;
     } else {
         renderDynamicDotContent();

@@ -1,27 +1,5 @@
-import { db } from './firebase-config.js';
-import { DEFAULT_DOT_PALETTE } from './modules/config.js';
-import { renderLetter } from './modules/renderer.js';
-import {
-    loadSiteContent,
-    normalizeDotPalette,
-    normalizeHexColor
-} from './modules/database.js';
-import {
-    signOutCurrentUser,
-    watchEditorAccess
-} from './modules/admin-access.js';
-import { requireAuth } from './modules/auth-guard.js';
-import {
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    serverTimestamp,
-    setDoc
-} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 // Redirect to login page if not authenticated
-await requireAuth();
 
 window.letters = window.letters || {};
 window.letterColors = window.letterColors || {};
@@ -595,9 +573,8 @@ function loadLetter(char) {
     updateLetterSelectionUi();
 
     const unsupportedColors = getUnsupportedGridColors();
-    const itemLabel = isGraphicItem(char) ? 'graphic' : 'letter';
     if (unsupportedColors.length > 0) {
-        setPaletteNotice(`This ${itemLabel} uses colors not in your current palette: ${unsupportedColors.join(', ')}. Please repaint those dots before saving.`, true);
+        setPaletteNotice(`This letter uses colors not in your current palette: ${unsupportedColors.join(', ')}. Please repaint those dots before saving.`, true);
     } else {
         setPaletteNotice('These colors are available across your website. Use the + button to add new ones.');
     }
