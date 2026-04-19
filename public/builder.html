@@ -136,9 +136,15 @@
                 <p class="builder-section-label">Choose a letter</p>
                 <p class="builder-help mb-3">Pick an existing letter to edit, or create a new one.</p>
                 <div class="flex flex-wrap gap-2" id="letter-buttons"></div>
-                <div id="new-letter-row" class="hidden mt-3 flex gap-2">
-                    <input type="text" id="new-letter-input" placeholder="Type one character" maxlength="1" class="cms-input flex-1 text-center text-lg font-bold">
-                    <button id="cancel-new-letter-button" type="button" class="cms-btn cms-btn-secondary cms-btn-sm">Cancel</button>
+                <div id="new-letter-row" class="hidden mt-3 space-y-2">
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" id="graphic-mode-toggle" class="w-4 h-4">
+                        <span class="text-xs font-medium text-gray-600">Save as graphic (e.g. heart, smiley)</span>
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-letter-input" placeholder="Type one character" maxlength="1" class="cms-input flex-1 text-center text-lg font-bold">
+                        <button id="cancel-new-letter-button" type="button" class="cms-btn cms-btn-secondary cms-btn-sm">Cancel</button>
+                    </div>
                 </div>
                 <p id="selected-letter-status" class="mt-2 text-xs text-gray-400">Select a letter to edit, or add a new one.</p>
             </div>

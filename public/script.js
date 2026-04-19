@@ -150,33 +150,70 @@ function buildSections(sections) {
         ].join(' ').trim();
 
         const inner = document.createElement('div');
-        inner.className = 'cms-section-inner w-full max-w-5xl';
+        inner.className = section.isSplit
+            ? 'cms-section-inner w-full max-w-6xl grid gap-12 lg:grid-cols-2 items-center'
+            : 'cms-section-inner w-full max-w-5xl';
 
         const heading = document.createElement('div');
-        heading.className = 'w-full flex flex-wrap mb-12 justify-center gap-y-8';
+        heading.className = section.isSplit
+            ? 'w-full flex flex-wrap mb-8 justify-start gap-4'
+            : 'w-full flex flex-wrap mb-12 justify-center gap-y-8';
 
         if (section.titleUseDots) {
             const dotHeading = document.createElement('div');
             dotHeading.id = `section-title-${section.id}`;
             dotHeading.className = 'cms-dot-heading';
             const fallbackHeading = document.createElement('h2');
-            fallbackHeading.className = 'dot-fallback-heading text-center';
+            fallbackHeading.className = `dot-fallback-heading ${section.isSplit ? 'text-left' : 'text-center'}`;
             fallbackHeading.textContent = section.title;
             dotHeading.appendChild(fallbackHeading);
             heading.appendChild(dotHeading);
         } else {
             const plainHeading = document.createElement('h2');
-            plainHeading.className = 'dot-fallback-heading text-center';
+            plainHeading.className = `dot-fallback-heading ${section.isSplit ? 'text-left' : 'text-center'}`;
             plainHeading.textContent = section.title;
             heading.appendChild(plainHeading);
         }
 
         const body = document.createElement('div');
-        body.className = 'cms-section-body rich-content max-w-2xl mx-auto text-center text-gray-700 text-lg md:text-xl leading-relaxed';
+        body.className = `cms-section-body rich-content ${section.isSplit ? 'max-w-none text-left' : 'max-w-2xl mx-auto text-center'} text-gray-700 text-lg md:text-xl leading-relaxed`;
         setRichContent(body, section.bodyHtml);
 
-        inner.appendChild(heading);
-        inner.appendChild(body);
+        const contentColumn = document.createElement('div');
+        contentColumn.className = section.isSplit ? 'space-y-8' : '';
+        contentColumn.appendChild(heading);
+        contentColumn.appendChild(body);
+
+        if (section.isSplit) {
+            const graphicColumn = document.createElement('div');
+            graphicColumn.className = 'cms-section-graphic flex justify-center items-center';
+
+            if (section.graphicType === 'image' && section.graphicUrl) {
+                const img = document.createElement('img');
+                img.src = section.graphicUrl;
+                img.alt = section.title;
+                img.className = 'w-full h-auto rounded-3xl border border-gray-200 shadow-sm';
+                graphicColumn.appendChild(img);
+            } else if (section.graphicType === 'dot' && section.graphicName && window.letters && window.letters[section.graphicName]) {
+                const graphicWrapper = document.createElement('div');
+                graphicWrapper.id = `section-graphic-${section.id}`;
+                graphicWrapper.className = 'w-full';
+                graphicColumn.appendChild(graphicWrapper);
+                renderText(graphicWrapper.id, section.graphicName, { dotSize: 18, letterSpacing: 14 });
+            } else {
+                const fallbackGraphic = document.createElement('div');
+                fallbackGraphic.className = 'text-sm text-gray-500 italic text-center';
+                fallbackGraphic.textContent = section.graphicType === 'image'
+                    ? 'Add a valid image URL in the admin panel to show the graphic here.'
+                    : 'Choose a dot graphic in the admin panel to show it here.';
+                graphicColumn.appendChild(fallbackGraphic);
+            }
+
+            inner.appendChild(contentColumn);
+            inner.appendChild(graphicColumn);
+        } else {
+            inner.appendChild(contentColumn);
+        }
 
         if (section.id === 'contact') {
             buildContactEmail(inner);
@@ -225,8 +262,16 @@ function renderDynamicDotContent() {
                 section.title,
                 { dotSize: 8, monochrome: true, visualScale: 1.3 },
                 'h2',
-                'dot-fallback-heading text-center'
+                `dot-fallback-heading ${section.isSplit ? 'text-left' : 'text-center'}`
             );
+        }
+
+        if (section.isSplit && section.graphicType === 'dot') {
+            const graphicWrapper = document.getElementById(`section-graphic-${section.id}`);
+            if (graphicWrapper && section.graphicName) {
+                graphicWrapper.innerHTML = '';
+                renderText(graphicWrapper.id, section.graphicName, { dotSize: 18, letterSpacing: 14 });
+            }
         }
     });
 }

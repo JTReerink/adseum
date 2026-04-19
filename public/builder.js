@@ -49,6 +49,7 @@ const letterButtons = document.getElementById('letter-buttons');
 const newLetterRow = document.getElementById('new-letter-row');
 const newLetterInput = document.getElementById('new-letter-input');
 const cancelNewLetterButton = document.getElementById('cancel-new-letter-button');
+const graphicModeToggle = document.getElementById('graphic-mode-toggle');
 const selectedLetterStatus = document.getElementById('selected-letter-status');
 const rowsInput = document.getElementById('grid-rows');
 const colsInput = document.getElementById('grid-cols');
@@ -142,18 +143,32 @@ function openNewLetterMode() {
     currentLetterName = '';
     clearEditorGrid();
     newLetterInput.value = '';
+    graphicModeToggle.checked = false;
+    updateNewLetterInputAttributes();
     newLetterRow.classList.remove('hidden');
     initEditor(true);
     refreshLetterButtons();
     updateLetterSelectionUi();
-    setPaletteNotice('Type the character you want to design, then draw it on the grid and save.');
+    setPaletteNotice('Choose whether you want to design a letter (single character) or a graphic (like a heart), then draw it on the grid and save.');
     setTimeout(() => newLetterInput.focus(), 0);
 }
 
 function closeNewLetterMode() {
     newLetterRow.classList.add('hidden');
     newLetterInput.value = '';
+    graphicModeToggle.checked = false;
     updateLetterSelectionUi();
+}
+
+function updateNewLetterInputAttributes() {
+    const isGraphicMode = graphicModeToggle.checked;
+    if (isGraphicMode) {
+        newLetterInput.placeholder = 'e.g. heart, smiley, star';
+        newLetterInput.removeAttribute('maxlength');
+    } else {
+        newLetterInput.placeholder = 'Type one character';
+        newLetterInput.setAttribute('maxlength', '1');
+    }
 }
 
 function rebuildLettersFromSnapshot(querySnapshot) {
@@ -285,7 +300,7 @@ function initColorPalette() {
 }
 
 function setEditorEnabled(enabled) {
-    [newLetterInput, cancelNewLetterButton, saveButton, deleteButton, downloadButton, paletteColorInput, offsetXInput, offsetYInput, offsetApplyButton, offsetResetButton].forEach((element) => {
+    [newLetterInput, cancelNewLetterButton, graphicModeToggle, saveButton, deleteButton, downloadButton, paletteColorInput, offsetXInput, offsetYInput, offsetApplyButton, offsetResetButton].forEach((element) => {
         element.disabled = !enabled;
     });
     offsetModeToggle.disabled = !enabled;
@@ -695,8 +710,24 @@ window.addToAlphabet = async function addToAlphabet() {
         return;
     }
 
-    if (name.length !== 1) {
+    const isGraphicMode = graphicModeToggle.checked;
+    if (!isGraphicMode && name.length !== 1) {
         window.alert('Each letter design represents a single character (e.g. "A", "b", "3").');
+        return;
+    }
+
+    if (isGraphicMode && name.length < 2) {
+        window.alert('Graphic names should be at least 2 characters (e.g. "heart", "star").');
+        return;
+    }
+
+    if (!isGraphicMode && name.match(/[^a-zA-Z0-9]/)) {
+        window.alert('Letter names can only contain letters and numbers.');
+        return;
+    }
+
+    if (isGraphicMode && name.match(/[^a-z0-9_-]/i)) {
+        window.alert('Graphic names can only contain letters, numbers, hyphens, and underscores.');
         return;
     }
 
@@ -743,7 +774,8 @@ window.addToAlphabet = async function addToAlphabet() {
         closeNewLetterMode();
         refreshLetterButtons();
         updateLetterSelectionUi();
-        window.alert(`Letter "${name}" has been saved! It will appear on your website automatically.`);
+        const itemType = isGraphicMode ? 'Graphic' : 'Letter';
+        window.alert(`${itemType} "${name}" has been saved! It will appear on your website automatically.`);
     } catch (error) {
         console.error('Error saving letter:', error);
         window.alert('Something went wrong while saving. Please check your connection and try again.');
@@ -841,6 +873,12 @@ cancelNewLetterButton.addEventListener('click', () => {
 
 newLetterInput.addEventListener('input', () => {
     updateLetterSelectionUi();
+});
+
+graphicModeToggle.addEventListener('change', () => {
+    updateNewLetterInputAttributes();
+    newLetterInput.value = '';
+    newLetterInput.focus();
 });
 
 paletteColorInput.addEventListener('change', async () => {

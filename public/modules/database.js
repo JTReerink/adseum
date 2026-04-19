@@ -84,7 +84,11 @@ export function createSection(overrides = {}) {
         navUseDots: Boolean(overrides.navUseDots),
         title,
         titleUseDots: overrides.titleUseDots !== undefined ? Boolean(overrides.titleUseDots) : true,
-        bodyHtml: sanitizeRichHtml(overrides.bodyHtml || '<p>Add your section content here.</p>')
+        bodyHtml: sanitizeRichHtml(overrides.bodyHtml || '<p>Add your section content here.</p>'),
+        isSplit: Boolean(overrides.isSplit),
+        graphicType: overrides.graphicType && ['image', 'dot'].includes(overrides.graphicType) ? overrides.graphicType : (overrides.isSplit ? 'dot' : null),
+        graphicName: typeof overrides.graphicName === 'string' ? overrides.graphicName.trim() : '',
+        graphicUrl: typeof overrides.graphicUrl === 'string' ? overrides.graphicUrl.trim() : ''
     };
 }
 

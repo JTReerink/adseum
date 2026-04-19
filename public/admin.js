@@ -126,6 +126,19 @@ function getInlineValidation(section, index) {
                 });
             }
         }
+
+        if (section.isSplit) {
+            if (section.graphicType === 'dot') {
+                if (!section.graphicName.trim()) {
+                    issues.push({ field: 'graphicName', message: 'Select a dot graphic to display in the split layout.' });
+                } else if (!lettersMap[section.graphicName]) {
+                    issues.push({ field: 'graphicName', message: `The dot graphic "${section.graphicName}" is not available. Save it in the Letter Designer first.` });
+                }
+            }
+            if (section.graphicType === 'image' && !section.graphicUrl.trim()) {
+                issues.push({ field: 'graphicUrl', message: 'Provide an image URL to display in the split layout.' });
+            }
+        }
     } else if (section.navUseDots || section.titleUseDots) {
         issues.push({ field: 'dots', message: 'Dot letters are still loading. Please wait a moment.' });
     }
@@ -181,6 +194,24 @@ function renderInlineValidation(card, index) {
             titleDotsContainer.innerHTML = `<div class="cms-field-help">Heading will display as regular text.</div>`;
         }
     }
+
+    const graphicAreaContainer = card.querySelector('[data-validation-target="graphicArea"]');
+    if (graphicAreaContainer) {
+        if (section.isSplit) {
+            const graphicError = issues.find(i => i.field === 'graphicName' || i.field === 'graphicUrl');
+            if (graphicError) {
+                graphicAreaContainer.innerHTML = `<div class="cms-inline-error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>${escapeHtml(graphicError.message)}</div>`;
+            } else if (section.graphicType === 'dot') {
+                graphicAreaContainer.innerHTML = `<div class="cms-inline-success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Dot graphic selection looks good.</div>`;
+            } else if (section.graphicType === 'image') {
+                graphicAreaContainer.innerHTML = `<div class="cms-inline-success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Image graphic will display in the split section.</div>`;
+            } else {
+                graphicAreaContainer.innerHTML = `<div class="cms-field-help">Select a graphic type for the split layout.</div>`;
+            }
+        } else {
+            graphicAreaContainer.innerHTML = '';
+        }
+    }
 }
 
 function renderAllInlineValidation() {
@@ -197,6 +228,9 @@ function renderSections() {
 
     sectionsList.innerHTML = siteContent.sections.map((section, index) => {
         const isCollapsed = collapsedSections.has(index);
+        const sectionGraphicsOptions = Object.keys(lettersMap || {}).sort().map(name => 
+            `<option value="${escapeHtml(name)}" ${section.graphicName === name ? 'selected' : ''}>${escapeHtml(name)}</option>`
+        ).join('');
         return `
         <article class="cms-section-card${isCollapsed ? ' collapsed' : ''}" data-section-index="${index}">
             <div class="cms-section-card-header" data-section-action="toggle">
@@ -269,6 +303,66 @@ function renderSections() {
                     </div>
                 </div>
 
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <div class="mb-4">
+                        <label class="cms-checkbox-row">
+                            <input type="checkbox" ${section.isSplit ? 'checked' : ''} data-section-field="isSplit">
+                            <span>Use split layout with graphic</span>
+                        </label>
+                        <p class="cms-field-help">Split the section into two columns: text on one side and a graphic on the other.</p>
+                    </div>
+
+                    ${section.isSplit ? `
+                    <div class="space-y-4 p-4 bg-blue-50 rounded-lg">
+                        <div>
+                            <p class="cms-field-label mb-2">Graphic type</p>
+                            <div class="flex gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="graphic-type-${index}" value="dot" ${section.graphicType === 'dot' ? 'checked' : ''} data-section-field="graphicType">
+                                    <span class="text-sm font-medium">Dot graphic</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="graphic-type-${index}" value="image" ${section.graphicType === 'image' ? 'checked' : ''} data-section-field="graphicType">
+                                    <span class="text-sm font-medium">Uploaded image</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        ${section.graphicType === 'dot' ? `
+                        <div>
+                            <label class="block">
+                                <span class="cms-field-label">Dot graphic</span>
+                                <select class="cms-input" data-section-field="graphicName">
+                                    <option value="">-- Select a graphic --</option>
+                                    ${sectionGraphicsOptions}
+                                </select>
+                                <p class="cms-field-help">Choose a dot graphic you've designed in the builder.</p>
+                                <div data-validation-target="graphicArea" class="mt-2"></div>
+                            </label>
+                        </div>
+                        ` : ''}
+
+                        ${section.graphicType === 'image' ? `
+                        <div>
+                            <label class="block">
+                                <span class="cms-field-label">Image URL</span>
+                                <input type="text" class="cms-input" value="${escapeHtml(section.graphicUrl || '')}" data-section-field="graphicUrl" placeholder="https://example.com/image.jpg">
+                                <p class="cms-field-help">Paste the URL of an image to display in the graphic area.</p>
+                                <div data-validation-target="graphicArea" class="mt-2"></div>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="block">
+                                <span class="cms-field-label">Or upload an image</span>
+                                <input type="file" accept="image/*" class="cms-input" data-section-file="graphicUrl">
+                                <p class="cms-field-help">Upload a file and it will be stored for this section.</p>
+                            </label>
+                        </div>
+                        ` : ''}
+                    </div>
+                    ` : ''}
+                </div>
+
                 ${section.id === 'contact' ? `
                 <div class="mt-4 pt-4 border-t border-gray-100">
                     <p class="cms-field-label mb-1">Contact email</p>
@@ -309,6 +403,19 @@ function updateSectionField(index, field, value) {
 
     if (field === 'navUseDots' || field === 'titleUseDots') {
         siteContent.sections[index][field] = Boolean(value);
+    } else if (field === 'isSplit') {
+        siteContent.sections[index][field] = Boolean(value);
+        if (siteContent.sections[index].isSplit && !siteContent.sections[index].graphicType) {
+            siteContent.sections[index].graphicType = 'dot';
+        }
+        // Re-render the entire section when split mode changes
+        renderSections();
+        return;
+    } else if (field === 'graphicType') {
+        siteContent.sections[index][field] = value || null;
+        // Re-render the entire section when graphic type changes
+        renderSections();
+        return;
     } else {
         siteContent.sections[index][field] = value;
     }
@@ -626,7 +733,24 @@ sectionsList.addEventListener('input', (event) => {
 
 sectionsList.addEventListener('change', (event) => {
     const card = event.target.closest('[data-section-index]');
-    if (!card || !event.target.matches('[data-section-field="id"]')) return;
+    if (!card) return;
+
+    if (event.target.matches('[data-section-file]')) {
+        const index = Number(card.dataset.sectionIndex);
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.addEventListener('load', () => {
+            if (typeof reader.result === 'string') {
+                updateSectionField(index, 'graphicUrl', reader.result);
+            }
+        });
+        reader.readAsDataURL(file);
+        return;
+    }
+
+    if (!event.target.matches('[data-section-field="id"]')) return;
     const index = Number(card.dataset.sectionIndex);
     const nextValue = slugify(event.target.value);
     event.target.value = nextValue;
@@ -714,9 +838,7 @@ setNotice(editorNotice, 'Only approved accounts can edit the website.');
 listenToLetters((letters) => {
     lettersMap = letters || {};
     lettersReady = true;
-    renderAllInlineValidation();
-});
-
+        renderSections();
 watchEditorAccess(async (access) => {
     currentAccess = access;
     renderAccessState();

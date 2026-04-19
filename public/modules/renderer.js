@@ -73,6 +73,9 @@ export const renderText = (containerId, text, options = {}) => {
     const container = document.getElementById(containerId);
     if (!container) return;
 
+    const textValue = typeof text === 'string' ? text.trim() : '';
+    const exactLetterKey = textValue && window.letters && window.letters[textValue] ? textValue : null;
+
     // Calculate optimal dotSize if none provided or to ensure it fits container width
     let finalOptions = { ...options };
     let letterGap = options.letterSpacing !== undefined ? options.letterSpacing : LETTER_SPACING;
@@ -134,14 +137,27 @@ export const renderText = (containerId, text, options = {}) => {
     rowContainer.style.width = '100%';
     rowContainer.style.gap = `${letterGap}px`;
 
-    const words = text.split(' ');
+    const words = exactLetterKey ? [exactLetterKey] : text.split(' ');
 
     words.forEach((word, wordIndex) => {
         // Add a spacer between words (wider than letter gap)
-        if (wordIndex > 0) {
+        if (!exactLetterKey && wordIndex > 0) {
             const space = document.createElement('div');
             space.style.width = `${letterGap * 2}px`;
             rowContainer.appendChild(space);
+        }
+
+        if (exactLetterKey) {
+            const key = exactLetterKey;
+            if (window.letters && window.letters[key]) {
+                const charOptions = {
+                    ...finalOptions,
+                    colorMap: (window.letterColors && window.letterColors[key]) || {},
+                    offsetMap: (window.letterOffsets && window.letterOffsets[key]) || {}
+                };
+                rowContainer.appendChild(renderLetter(key, window.letters[key], charOptions));
+            }
+            return;
         }
 
         word.split('').forEach(char => {
