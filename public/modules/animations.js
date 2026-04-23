@@ -464,11 +464,25 @@ export const initDotReverseAnimation = () => {
         gsap.set(overlayEl, { opacity: 1 });
         inkDots.forEach(svg => gsap.set(svg, { opacity: 0 }));
 
-        // If the user already scrolled during the intro, seek the scrubbed timeline
-        // to the current scroll progress so the dots instantly reflect the right state
-        // (e.g. 50% scrolled → 50% scatter) instead of snapping from 0% to current.
+        // If the user has already scrolled during the intro, snap the scrubbed timeline
+        // to the correct position immediately. tl.scrollTrigger.update() alone is not
+        // enough — with scrub:1 it animates over 1s and can also be called before
+        // ScrollTrigger.refresh() settles, causing intermittent wrong positions.
+        // Instead: calculate hero progress directly and force the timeline there instantly.
         if (tl.scrollTrigger) {
-            tl.scrollTrigger.update();
+            const hero = document.getElementById('hero');
+            const heroProgress = hero
+                ? gsap.utils.clamp(0, 1, -hero.getBoundingClientRect().top / Math.max(hero.offsetHeight, 1))
+                : 0;
+
+            if (heroProgress > 0) {
+                // Instantly snap — suppressing events to avoid side-effect callbacks
+                tl.progress(heroProgress, true);
+            }
+
+            // After the current frame (once ScrollTrigger.refresh() has fully settled),
+            // sync the scrub state so subsequent scrolling behaves correctly.
+            requestAnimationFrame(() => tl.scrollTrigger.update());
         }
     };
 
