@@ -175,8 +175,9 @@ function buildSections(sections) {
 
         const heading = document.createElement('div');
         heading.className = section.isSplit
-            ? 'w-full max-w-6xl flex flex-wrap mb-10 justify-start gap-4'
+            ? 'w-full max-w-6xl flex flex-wrap justify-start gap-4'
             : 'w-full flex flex-wrap mb-12 justify-center gap-y-8';
+        if (section.isSplit) heading.style.marginBottom = '2.5rem';
 
         if (section.titleUseDots) {
             const dotHeading = document.createElement('div');
