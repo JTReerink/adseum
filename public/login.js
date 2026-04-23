@@ -39,6 +39,36 @@ const toastEl = document.getElementById('cms-toast');
 let chosenEmail = '';
 let waitingForSetPassword = false;
 
+function redirectToCanonicalLocalhost() {
+    const url = new URL(window.location.href);
+    if (url.hostname !== '127.0.0.1') return false;
+
+    url.hostname = 'localhost';
+    window.location.replace(url.toString());
+    return true;
+}
+
+function getFriendlyAuthMessage(error, fallbackMessage) {
+    switch (error?.code) {
+        case 'auth/popup-blocked':
+            return 'Je browser blokkeerde de Google-popup. Probeer het opnieuw nadat deze pagina op localhost is geopend.';
+        case 'auth/popup-closed-by-user':
+            return 'De Google-login werd gesloten voordat die klaar was. Probeer het nog eens.';
+        case 'auth/unauthorized-domain':
+            return 'Deze loginpagina draait op een domein dat Firebase Auth niet toestaat. Open de lokale viewer via localhost, niet via 127.0.0.1.';
+        case 'auth/unauthorized-continue-uri':
+            return 'De e-mail loginlink mocht niet worden verstuurd omdat de terugkeer-URL niet is toegestaan. Open de lokale viewer via localhost en probeer het opnieuw.';
+        case 'auth/operation-not-allowed':
+            return 'Deze inlogmethode staat niet aan in Firebase Authentication.';
+        case 'auth/network-request-failed':
+            return 'De verbinding met Firebase mislukte. Controleer je internetverbinding en probeer het opnieuw.';
+        default:
+            return fallbackMessage;
+    }
+}
+
+redirectToCanonicalLocalhost();
+
 function getRedirectTarget() {
     const params = new URLSearchParams(window.location.search);
     return params.get('redirect') || '/admin';
@@ -132,7 +162,7 @@ sendLinkFirst.addEventListener('click', async () => {
     } catch (error) {
         console.error('Error sending email link:', error);
         waitingForSetPassword = false;
-        showToast('Could not send sign-in link. Please try again.', 'error');
+        showToast(getFriendlyAuthMessage(error, 'Could not send sign-in link. Please try again.'), 'error');
     }
 });
 
@@ -170,7 +200,7 @@ forgotPasswordBtn.addEventListener('click', async () => {
         if (error.code === 'auth/user-not-found') {
             showToast('No account found for this email. Use the sign-in link to create one.', 'error');
         } else {
-            showToast('Could not send reset email. Please try again.', 'error');
+            showToast(getFriendlyAuthMessage(error, 'Could not send reset email. Please try again.'), 'error');
         }
     }
 });
@@ -183,7 +213,7 @@ sendLinkBtn.addEventListener('click', async () => {
         emailLinkSent.classList.remove('hidden');
     } catch (error) {
         console.error('Error sending email link:', error);
-        showToast('Could not send sign-in link. Please try again.', 'error');
+        showToast(getFriendlyAuthMessage(error, 'Could not send sign-in link. Please try again.'), 'error');
     }
 });
 
@@ -219,7 +249,7 @@ googleSignIn.addEventListener('click', async () => {
         await signInWithGoogle();
     } catch (error) {
         console.error('Error signing in:', error);
-        showToast('Sign-in failed. Please make sure pop-ups are allowed.', 'error');
+        showToast(getFriendlyAuthMessage(error, 'Sign-in failed. Please make sure pop-ups are allowed.'), 'error');
     }
 });
 

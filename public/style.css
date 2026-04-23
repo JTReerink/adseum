@@ -873,6 +873,13 @@ body.admin-pending #admin-app {
     border-color: var(--cms-accent);
 }
 
+.builder-graphic-btn {
+    min-width: 5.75rem;
+    width: auto;
+    padding: 0 0.9rem;
+    text-transform: none;
+}
+
 /* =============================================
    RESPONSIVE
    ============================================= */

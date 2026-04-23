@@ -1,39 +1,7 @@
-import { db } from './firebase-config.js';
-import {
-    OWNER_EMAIL,
-    signOutCurrentUser,
-    watchEditorAccess
-} from './modules/admin-access.js';
-import { requireAuth } from './modules/auth-guard.js';
-import {
-    DEFAULT_SITE_CONTENT,
-    createSection,
-    deriveSectionId,
-    deriveSectionName,
-    escapeHtml,
-    isContactSection,
-    listenToLetters,
-    loadSiteContent,
-    sanitizeRichHtml,
-    validateDotText
-} from './modules/database.js';
-import {
-    SECTION_MENU_USES_DOTS,
-    SECTION_TITLE_USES_DOTS
-} from './modules/config.js';
-import {
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    serverTimestamp,
-    setDoc
-} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 // Redirect to login page if not authenticated
-await requireAuth();
 
-/* ── DOM refs ── */
+/* â”€â”€ DOM refs â”€â”€ */
 const accessDenied = document.getElementById('access-denied');
 const adminApp = document.getElementById('admin-app');
 const publishBar = document.getElementById('publish-bar');
@@ -59,14 +27,14 @@ const animationSpeedInput = document.getElementById('animation-speed');
 const refreshPreviewButton = document.getElementById('refresh-preview-button');
 const toastEl = document.getElementById('cms-toast');
 
-/* ── State ── */
+/* â”€â”€ State â”€â”€ */
 let currentAccess = { user: null, email: '', canEdit: false, isOwner: false, role: null };
 let siteContent = structuredClone(DEFAULT_SITE_CONTENT);
 let lettersMap = {};
 let lettersReady = false;
 let collapsedSections = new Set();
 
-/* ── Helpers ── */
+/* â”€â”€ Helpers â”€â”€ */
 function normalizeEmail(email = '') { return email.trim().toLowerCase(); }
 function getSectionDisplayName(section = {}) { return deriveSectionName(section); }
 
@@ -95,7 +63,7 @@ function refreshPreview() {
     }
 }
 
-/* ── Validation ── */
+/* â”€â”€ Validation â”€â”€ */
 function getInlineValidation(section, index) {
     const issues = [];
     const sectionName = (section.navLabel || '').trim();
@@ -218,7 +186,7 @@ function renderAllInlineValidation() {
     });
 }
 
-/* ── Section rendering ── */
+/* â”€â”€ Section rendering â”€â”€ */
 function renderSections() {
     const isEmpty = siteContent.sections.length === 0;
     emptySectionsHint.classList.toggle('hidden', !isEmpty);
@@ -360,7 +328,7 @@ function renderSections() {
     renderAllInlineValidation();
 }
 
-/* ── Sync editors ── */
+/* â”€â”€ Sync editors â”€â”€ */
 function syncHeroEditor() {
     siteContent.hero.subtitleHtml = sanitizeRichHtml(heroSubtitleEditor.innerHTML);
 }
@@ -448,7 +416,7 @@ function applyEditorCommand(button) {
     else syncSectionRichEditor(surface);
 }
 
-/* ── Editor management ── */
+/* â”€â”€ Editor management â”€â”€ */
 function renderEditors(entries) {
     editorsList.innerHTML = '';
 
@@ -539,7 +507,7 @@ function renderAccessState() {
     showShell('app');
 }
 
-/* ── Save / publish ── */
+/* â”€â”€ Save / publish â”€â”€ */
 saveContentButton.addEventListener('click', async () => {
     if (!currentAccess.canEdit) {
         showToast('Sign in with an approved account first.', 'error');
@@ -613,7 +581,7 @@ saveContentButton.addEventListener('click', async () => {
     }
 });
 
-/* ── Editor form (owner) ── */
+/* â”€â”€ Editor form (owner) â”€â”€ */
 editorForm.addEventListener('submit', async (event) => {
     event.preventDefault();
 
@@ -653,7 +621,7 @@ editorForm.addEventListener('submit', async (event) => {
     }
 });
 
-/* ── Event listeners ── */
+/* â”€â”€ Event listeners â”€â”€ */
 [signOutButton, deniedSignOut].forEach((btn) => {
     btn.addEventListener('click', async () => {
         try { await signOutCurrentUser(); }
@@ -790,7 +758,7 @@ animationSpeedInput.addEventListener('input', () => {
     siteContent.animationSpeed = parseFloat(animationSpeedInput.value) || 1.0;
 });
 
-/* ── Init (DOM is guaranteed ready after await requireAuth()) ── */
+/* â”€â”€ Init (DOM is guaranteed ready after await requireAuth()) â”€â”€ */
 try {
     siteContent = await loadSiteContent();
 } catch (error) {

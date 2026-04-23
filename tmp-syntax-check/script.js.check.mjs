@@ -1,13 +1,3 @@
-import { renderText } from './modules/renderer.js';
-import { animateDots, initAnimations, initScrollAnimations, initNavScrollAnimation, initDotReverseAnimation } from './modules/animations.js';
-import {
-    DEFAULT_SITE_CONTENT,
-    isContactSection,
-    listenToLetters,
-    listenToSiteContent,
-    sanitizeRichHtml,
-    validateDotText
-} from './modules/database.js';
 
 window.renderText = renderText;
 window.animateDots = animateDots;
@@ -175,9 +165,8 @@ function buildSections(sections) {
 
         const heading = document.createElement('div');
         heading.className = section.isSplit
-            ? 'w-full max-w-6xl flex flex-wrap justify-start gap-4'
+            ? 'w-full max-w-6xl flex flex-wrap mb-10 justify-start gap-4'
             : 'w-full flex flex-wrap mb-12 justify-center gap-y-8';
-        if (section.isSplit) heading.style.marginBottom = '2.5rem';
 
         if (section.titleUseDots) {
             const dotHeading = document.createElement('div');
@@ -313,7 +302,7 @@ function handleRender() {
         initDotReverseAnimation();
         isFirstFetch = false;
     } else if (window.isAnimationComplete === false) {
-        // Entrance animation is still playing — don't re-render dots or we'll kill it
+        // Entrance animation is still playing â€” don't re-render dots or we'll kill it
         return;
     } else {
         renderDynamicDotContent();

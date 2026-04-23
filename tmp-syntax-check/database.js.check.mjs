@@ -1,16 +1,3 @@
-import { db } from '../firebase-config.js';
-import {
-    DEFAULT_DOT_PALETTE,
-    SECTION_MENU_USES_DOTS,
-    SECTION_TITLE_USES_DOTS
-} from './config.js';
-import {
-    collection,
-    doc,
-    getDoc,
-    onSnapshot
-} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.0.6/+esm';
 
 const DEFAULT_SECTION_BODIES = {
     about: '<p>Placeholder for About Us content. We are dedicated to empowering queer art through dynamic digital experiences.</p>',

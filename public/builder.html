@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ADSEUM — Letter Designer</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <link rel="stylesheet" href="style.css">
@@ -133,12 +134,30 @@
 
             <!-- Letter picker -->
             <div class="px-6 py-4 border-b border-gray-100">
-                <p class="builder-section-label">Choose a letter</p>
-                <p class="builder-help mb-3">Pick an existing letter to edit, or create a new one.</p>
-                <div class="flex flex-wrap gap-2" id="letter-buttons"></div>
-                <div id="new-letter-row" class="hidden mt-3 flex gap-2">
-                    <input type="text" id="new-letter-input" placeholder="Type one character" maxlength="1" class="cms-input flex-1 text-center text-lg font-bold">
-                    <button id="cancel-new-letter-button" type="button" class="cms-btn cms-btn-secondary cms-btn-sm">Cancel</button>
+                <p class="builder-section-label">Letters and graphics</p>
+                <p class="builder-help mb-4">Pick an existing item to edit, or start a fresh letter or graphic.</p>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex items-center justify-between gap-3 mb-2">
+                            <p class="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Letters</p>
+                            <button id="add-letter-button" type="button" class="cms-btn cms-btn-secondary cms-btn-sm text-xs">+ New letter</button>
+                        </div>
+                        <div class="flex flex-wrap gap-2" id="letter-buttons"></div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between gap-3 mb-2">
+                            <p class="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Graphics</p>
+                            <button id="add-graphic-button" type="button" class="cms-btn cms-btn-secondary cms-btn-sm text-xs">+ New graphic</button>
+                        </div>
+                        <div class="flex flex-wrap gap-2" id="graphic-buttons"></div>
+                    </div>
+                </div>
+                <div id="new-letter-row" class="hidden mt-3 space-y-2">
+                    <p id="new-item-mode-label" class="text-xs font-medium text-gray-600">New letter</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-letter-input" placeholder="Type one character" maxlength="1" class="cms-input flex-1 text-center text-lg font-bold">
+                        <button id="cancel-new-letter-button" type="button" class="cms-btn cms-btn-secondary cms-btn-sm">Cancel</button>
+                    </div>
                 </div>
                 <p id="selected-letter-status" class="mt-2 text-xs text-gray-400">Select a letter to edit, or add a new one.</p>
             </div>

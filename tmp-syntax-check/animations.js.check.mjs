@@ -1,4 +1,3 @@
-import { WIGGLE_DIST, rand } from './config.js';
 
 const getHeroScrollProgress = () => {
     const hero = document.getElementById('hero');
@@ -132,15 +131,8 @@ export const animateDots = (container = document) => {
         // Calculate random spawn point using the absolute CENTER of the blob. 
         // Because the blob expands inside a 'flex justify-center' container, its physical top-left moves left by startSize/2.
         // Doing the math purely based on the center-point elegantly neutralizes this flex layout shift!
-        //
-        // NOTE: getBoundingClientRect() returns viewport-relative coords. If the user has scrolled
-        // before the animation runs, rect.top can be negative (dot above viewport) or > innerHeight
-        // (dot below viewport). We clamp the reference point to the visible area so the random
-        // spawn zone always maps to something on screen.
-        const rawCenterX = rect.left + (rect.width / 2);
-        const rawCenterY = rect.top + (rect.height / 2);
-        const initialCenterX = gsap.utils.clamp(0, window.innerWidth, rawCenterX);
-        const initialCenterY = gsap.utils.clamp(0, window.innerHeight, rawCenterY);
+        const initialCenterX = rect.left + (rect.width / 2);
+        const initialCenterY = rect.top + (rect.height / 2);
 
         const minCenterX = startSize / 2;
         const maxCenterX = window.innerWidth - (startSize / 2);
@@ -237,33 +229,9 @@ export const animateDots = (container = document) => {
             const isMainLogo = container === document || container === '#logo-grid' || (parent && parent.id === 'hero');
             if (isMainLogo) {
                 window.isAnimationComplete = true; // Enable interaction main logo
-
-                // Snap all ink dots back to their natural grid position (x:0, y:0).
-                // If the user scrolled during the intro animation, GSAP's scroll-driven
-                // tween on logo-grid may have left the dots with a stale x/y offset.
-                // Resetting here ensures they always land in the correct place.
-                const logoGrid = document.getElementById('logo-grid');
-                if (logoGrid) {
-                    logoGrid.querySelectorAll('.dot-wrapper svg[data-type="ink"]').forEach(dot => {
-                        gsap.set(dot, {
-                            x: 0,
-                            y: 0,
-                            width: dot.getAttribute('data-std-size'),
-                            height: dot.getAttribute('data-std-size'),
-                            overwrite: true
-                        });
-                        const path = dot.querySelector('path');
-                        if (path) {
-                            const stdD = path.getAttribute('data-std-d');
-                            if (stdD) gsap.set(path, { attr: { d: stdD } });
-                            path._morphState = 'standard';
-                        }
-                    });
-                }
-
                 revealIntroChrome();
                 // Refresh ScrollTrigger now that the viewport is stable and the
-                // logo is in its final resting position — fixes cold-start sizing issues
+                // logo is in its final resting position â€” fixes cold-start sizing issues
                 if (window.ScrollTrigger) ScrollTrigger.refresh();
             }
         }
@@ -316,12 +284,12 @@ export const initNavScrollAnimation = () => {
                 }
             },
             onLeave: () => {
-                // Logo has landed at nav corner — swap to nav logo instantly
+                // Logo has landed at nav corner â€” swap to nav logo instantly
                 navLogoEl.style.opacity = '1';
                 gsap.set(logoGrid, { opacity: 0 });
             },
             onEnterBack: () => {
-                // User scrolled back into hero — restore hero logo
+                // User scrolled back into hero â€” restore hero logo
                 navLogoEl.style.opacity = '0';
                 gsap.set(logoGrid, { opacity: 1 });
             },
@@ -381,7 +349,7 @@ export const initDotReverseAnimation = () => {
         return { svg, path, clone, clonePath, inkD, stdD, inkSize, stdSize };
     }).filter(Boolean);
 
-    // Scrubbed timeline — tweens added in revealOverlay after measuring final positions
+    // Scrubbed timeline â€” tweens added in revealOverlay after measuring final positions
     const tl = gsap.timeline({
         scrollTrigger: {
             trigger: '#hero',
@@ -395,25 +363,8 @@ export const initDotReverseAnimation = () => {
         const vw = window.innerWidth;
         const vh = window.innerHeight;
 
-        // If the user scrolled during the intro, logo-grid already has a mid-scroll
-        // GSAP transform (x/y/scale) from the nav-scroll animation. Measuring
-        // getBoundingClientRect() now would give shifted positions.
-        // Fix: temporarily reset logo-grid to its scroll=0 state, measure, then
-        // restore. getBoundingClientRect() triggers a layout reflow but NOT a paint,
-        // so this all happens within one JS frame with no visible flash.
-        const logoGrid = document.getElementById('logo-grid');
-        let savedX = 0, savedY = 0, savedScale = 1;
-        if (logoGrid) {
-            savedX = gsap.getProperty(logoGrid, 'x') || 0;
-            savedY = gsap.getProperty(logoGrid, 'y') || 0;
-            savedScale = gsap.getProperty(logoGrid, 'scale') || 1;
-            if (savedX !== 0 || savedY !== 0 || savedScale !== 1) {
-                gsap.set(logoGrid, { x: 0, y: 0, scale: 1 });
-            }
-        }
-
         cloneData.forEach(({ svg, clone, clonePath, inkD, stdD, inkSize, stdSize }) => {
-            // Measure the dot's exact screen position at scroll=0 (logo in hero center)
+            // Measure the dot's exact screen position now that the intro has fully settled
             const rect = svg.getBoundingClientRect();
             const cx = rect.left + rect.width / 2;
             const cy = rect.top + rect.height / 2;
@@ -455,35 +406,9 @@ export const initDotReverseAnimation = () => {
             }
         });
 
-        // Restore logo-grid to its actual current scroll-driven transform position
-        if (logoGrid && (savedX !== 0 || savedY !== 0 || savedScale !== 1)) {
-            gsap.set(logoGrid, { x: savedX, y: savedY, scale: savedScale });
-        }
-
-        // Show overlay and hide originals in the same paint — no gap, no jump
+        // Show overlay and hide originals in the same paint â€” no gap, no jump
         gsap.set(overlayEl, { opacity: 1 });
         inkDots.forEach(svg => gsap.set(svg, { opacity: 0 }));
-
-        // If the user has already scrolled during the intro, snap the scrubbed timeline
-        // to the correct position immediately. tl.scrollTrigger.update() alone is not
-        // enough — with scrub:1 it animates over 1s and can also be called before
-        // ScrollTrigger.refresh() settles, causing intermittent wrong positions.
-        // Instead: calculate hero progress directly and force the timeline there instantly.
-        if (tl.scrollTrigger) {
-            const hero = document.getElementById('hero');
-            const heroProgress = hero
-                ? gsap.utils.clamp(0, 1, -hero.getBoundingClientRect().top / Math.max(hero.offsetHeight, 1))
-                : 0;
-
-            if (heroProgress > 0) {
-                // Instantly snap — suppressing events to avoid side-effect callbacks
-                tl.progress(heroProgress, true);
-            }
-
-            // After the current frame (once ScrollTrigger.refresh() has fully settled),
-            // sync the scrub state so subsequent scrolling behaves correctly.
-            requestAnimationFrame(() => tl.scrollTrigger.update());
-        }
     };
 
     if (document.body.classList.contains('intro-complete')) {
