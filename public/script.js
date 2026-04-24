@@ -264,7 +264,9 @@ function renderDynamicDotContent() {
 
     if (navLogo) {
         navLogo.innerHTML = '';
-        renderText('nav-logo', 'ADseum', { dotSize: 3, visualScale: 1.15 });
+        // 1.5x original dotSize (3 * 1.5 = 4.5), matched visualScale to hero logo (1.35).
+        // Gap is omitted so renderer.js auto-scales it proportionally to the dotSize.
+        renderText('nav-logo', 'ADseum', { dotSize: 4.5, visualScale: 1.35 });
     }
 
     content.sections.forEach((section) => {

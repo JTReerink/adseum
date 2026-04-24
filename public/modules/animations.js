@@ -375,10 +375,12 @@ export const initDotReverseAnimation = () => {
 
         const clone = svg.cloneNode(true);
         const clonePath = clone.querySelector('path');
-        overlayEl.appendChild(clone);
-        gsap.set(clone, { position: 'absolute', left: -9999, top: -9999, opacity: 0 });
+        const wrapper = document.createElement('div');
+        overlayEl.appendChild(wrapper);
+        wrapper.appendChild(clone);
+        gsap.set(wrapper, { position: 'absolute', left: -9999, top: -9999, opacity: 0 });
 
-        return { svg, path, clone, clonePath, inkD, stdD, inkSize, stdSize };
+        return { svg, path, wrapper, clone, clonePath, inkD, stdD, inkSize, stdSize };
     }).filter(Boolean);
 
     // Scrubbed timeline — tweens added in revealOverlay after measuring final positions
@@ -412,13 +414,13 @@ export const initDotReverseAnimation = () => {
             }
         }
 
-        cloneData.forEach(({ svg, clone, clonePath, inkD, stdD, inkSize, stdSize }) => {
+        cloneData.forEach(({ svg, wrapper, clone, clonePath, inkD, stdD, inkSize, stdSize }) => {
             // Measure the dot's exact screen position at scroll=0 (logo in hero center)
             const rect = svg.getBoundingClientRect();
             const cx = rect.left + rect.width / 2;
             const cy = rect.top + rect.height / 2;
 
-            gsap.set(clone, {
+            gsap.set(wrapper, {
                 left: cx - stdSize / 2,
                 top: cy - stdSize / 2,
                 width: stdSize,
@@ -429,6 +431,10 @@ export const initDotReverseAnimation = () => {
                 opacity: 1,
                 transformOrigin: 'center center',
             });
+
+            gsap.set(clone, { width: '100%', height: '100%', x: 0, y: 0, scale: 1, opacity: 1 });
+            clone.setAttribute('data-is-clone', 'true');
+
             if (clonePath && stdD) gsap.set(clonePath, { attr: { d: stdD } });
 
             const inkScale = inkSize / stdSize;
@@ -437,7 +443,7 @@ export const initDotReverseAnimation = () => {
             const targetX = targetCX - cx;
             const targetY = targetCY - cy;
 
-            tl.to(clone, {
+            tl.to(wrapper, {
                 opacity: 0.3,
                 scale: inkScale,
                 x: targetX,
@@ -484,6 +490,10 @@ export const initDotReverseAnimation = () => {
             // sync the scrub state so subsequent scrolling behaves correctly.
             requestAnimationFrame(() => tl.scrollTrigger.update());
         }
+
+        if (window.updateWiggleTargets) {
+            window.updateWiggleTargets();
+        }
     };
 
     if (document.body.classList.contains('intro-complete')) {
@@ -507,7 +517,7 @@ export const initScrollAnimations = () => {
         if (section.id === 'hero') return;
 
         // Setup initially hidden state for the heading dots to prevent pop-in before scroll
-    const headingDots = section.querySelectorAll('.dot-wrapper svg');
+        const headingDots = section.querySelectorAll('.dot-wrapper svg');
         if (headingDots.length === 0) return; // Skip sections without dots
 
         gsap.set(headingDots, { opacity: 0 });
@@ -553,8 +563,8 @@ export const initAnimations = (containerSelector) => {
     // 3. Interactive Wiggle & Morph
     window.updateWiggleTargets = () => {
         // Only select dots that have finished animating or are already visible
-        // Since dots start with opacity 0 or off-screen, we just select all svgs in dot-wrappers
-        window.wiggleDots = document.querySelectorAll('.dot-wrapper svg');
+        // We include .dot-wrapper svg AND any clones in the reverse animation overlay
+        window.wiggleDots = document.querySelectorAll('.dot-wrapper svg, [data-dot-reverse] svg[data-is-clone="true"]');
         console.log("Wiggle targets updated:", window.wiggleDots.length);
     };
     window.updateWiggleTargets();
@@ -562,116 +572,195 @@ export const initAnimations = (containerSelector) => {
     // Ensure we don't bind multiple listeners if called again
     if (!window.hasWiggleListener) {
         window.hasWiggleListener = true;
-        window.addEventListener('mousemove', (e) => {
-            // Check global flag - only lock if main logo is hiding everything
-            if (window.isAnimationComplete === false) return;
-            if (!window.wiggleDots || window.wiggleDots.length === 0) return;
 
-            const mouseX = e.clientX;
-            const mouseY = e.clientY;
+        window.realMouse = { x: -9999, y: -9999 };
+        window.fakeMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        window.fakeMouseProgress = { x: 0.5, y: 0.5 };
+        window.isRealMouseActive = false;
 
-            window.wiggleDots.forEach(dot => {
-                const rect = dot.getBoundingClientRect();
-                const dotX = rect.left + rect.width / 2;
-                const dotY = rect.top + rect.height / 2;
+        const processWiggle = (dot, mouseX, mouseY) => {
+            const rect = dot.getBoundingClientRect();
+            const dotX = rect.left + rect.width / 2;
+            const dotY = rect.top + rect.height / 2;
 
-                const dist = Math.hypot(mouseX - dotX, mouseY - dotY);
+            const dist = Math.hypot(mouseX - dotX, mouseY - dotY);
 
-                // Interaction: Movement
-                if (dist < WIGGLE_DIST) {
-                    const angle = Math.atan2(mouseY - dotY, mouseX - dotX);
-                    const force = (WIGGLE_DIST - dist) / WIGGLE_DIST; // 0 to 1
+            // Interaction: Movement
+            if (dist < WIGGLE_DIST) {
+                const angle = Math.atan2(mouseY - dotY, mouseX - dotX);
+                const force = (WIGGLE_DIST - dist) / WIGGLE_DIST; // 0 to 1
 
-                    const moveX = Math.cos(angle) * -15 * force;
-                    const moveY = Math.sin(angle) * -15 * force; // Move away
+                const moveX = Math.cos(angle) * -15 * force;
+                const moveY = Math.sin(angle) * -15 * force; // Move away
 
-                    gsap.to(dot, {
-                        x: moveX,
-                        y: moveY,
-                        duration: 0.4,
-                        ease: "power2.out",
-                        overwrite: "auto"
-                    });
-                } else {
-                    gsap.to(dot, {
-                        x: 0,
-                        y: 0,
-                        duration: 0.6,
-                        ease: "elastic.out(1, 0.5)",
-                        overwrite: "auto"
-                    });
+                gsap.to(dot, {
+                    x: moveX,
+                    y: moveY,
+                    duration: 0.4,
+                    ease: "power2.out",
+                    overwrite: "auto"
+                });
+            } else {
+                gsap.to(dot, {
+                    x: 0,
+                    y: 0,
+                    duration: 0.6,
+                    ease: "elastic.out(1, 0.5)",
+                    overwrite: "auto"
+                });
+            }
+
+            // Interaction: Morphing (Ink to Standard & Size Change)
+            // Clones (background splashes) should only morph if we are at the top of the page (scroll=0).
+            // If scrolled, we yield the path attribute back to the ScrollTrigger scrub.
+            const isClone = dot.hasAttribute('data-is-clone');
+            let allowMorph = true;
+            let yieldPathToScroll = false;
+
+            if (isClone) {
+                const hero = document.getElementById('hero');
+                const heroProgress = hero ? Math.max(0, -hero.getBoundingClientRect().top / Math.max(hero.offsetHeight, 1)) : 0;
+                if (heroProgress > 0.05) {
+                    allowMorph = false;
+                    yieldPathToScroll = true;
                 }
+            }
 
-                // Interaction: Morphing (Ink to Standard & Size Change)
-                const path = dot.querySelector('path');
-                if (path && path.getAttribute('data-type') === 'ink') {
-                    const standardD = path.getAttribute('data-std-d');
-                    const inkD = path.getAttribute('data-ink-d');
+            const path = dot.querySelector('path');
+            if (path && path.getAttribute('data-type') === 'ink') {
+                const standardD = path.getAttribute('data-std-d');
+                const inkD = path.getAttribute('data-ink-d');
 
-                    // Retrieve sizes from the SVG element (dot)
-                    const inkSize = dot.getAttribute('data-ink-size');
-                    const stdSize = dot.getAttribute('data-std-size');
+                const inkSize = dot.getAttribute('data-ink-size');
+                const stdSize = dot.getAttribute('data-std-size');
 
-                    // We use a property on the element to avoid constant re-triggering
-                    // 1 = morphed (standard), 0 = original (ink)
-                    // REVERSED DEFAULT: We start as 'standard' visually now
-                    const currentMorphState = path._morphState || 'standard';
+                const currentMorphState = path._morphState || 'standard';
 
-                    if (dist < WIGGLE_DIST) {
-                        if (currentMorphState !== 'ink') {
-                            path._morphState = 'ink';
+                if (dist < WIGGLE_DIST && allowMorph) {
+                    if (currentMorphState !== 'ink') {
+                        path._morphState = 'ink';
 
-                            // Morph Shape -> Ink
-                            gsap.to(path, {
-                                attr: { d: inkD },
-                                duration: 0.3,
-                                ease: "back.out(1.7)", // More dramatic pop
-                                overwrite: "auto"
-                            });
+                        gsap.to(path, {
+                            attr: { d: inkD },
+                            duration: 0.3,
+                            ease: "back.out(1.7)",
+                            overwrite: "auto"
+                        });
 
-                            // Morph Size -> Ink (Grow via Scale)
-                            const inkScale = inkSize / stdSize;
-                            const hoverInkGrowth = parseFloat(dot.getAttribute('data-hover-ink-growth') || '1');
-                            const adjustedInkScale = 1 + ((inkScale - 1) * hoverInkGrowth);
+                        const inkScale = inkSize / stdSize;
+                        const hoverInkGrowth = parseFloat(dot.getAttribute('data-hover-ink-growth') || '1');
+                        const adjustedInkScale = 1 + ((inkScale - 1) * hoverInkGrowth);
 
-                            // Bring to front (but keep behind black dots)
-                            // Black dots are z-index 20. Colored are 10.
-                            // Hovered colored dot should be > 10 but < 20.
-                            if (dot.parentElement) dot.parentElement.style.zIndex = 15;
+                        if (dot.parentElement) dot.parentElement.style.zIndex = 15;
 
-                            gsap.to(dot, {
-                                scale: adjustedInkScale, // Use scale for smoother visual pop
-                                duration: 0.3,
-                                ease: "back.out(1.7)",
-                                overwrite: "auto"
-                            });
-                        }
-                    } else {
-                        if (currentMorphState !== 'standard') {
-                            path._morphState = 'standard';
+                        gsap.to(dot, {
+                            scale: adjustedInkScale,
+                            duration: 0.3,
+                            ease: "back.out(1.7)",
+                            overwrite: "auto"
+                        });
+                    }
+                } else {
+                    if (currentMorphState !== 'standard') {
+                        path._morphState = 'standard';
 
-                            // Morph Shape -> Standard
+                        if (!yieldPathToScroll) {
                             gsap.to(path, {
                                 attr: { d: standardD },
                                 duration: 0.5,
                                 ease: "power2.out",
                                 overwrite: "auto"
                             });
-
-                            // Reset Z-Index
-                            if (dot.parentElement) dot.parentElement.style.zIndex = "";
-
-                            // Morph Size -> Standard (Shrink via Scale)
-                            gsap.to(dot, {
-                                scale: 1, // Return to base size
-                                duration: 0.5,
-                                ease: "power2.out",
-                                overwrite: "auto"
-                            });
                         }
+
+                        if (dot.parentElement) dot.parentElement.style.zIndex = "";
+
+                        gsap.to(dot, {
+                            scale: 1, // Return local scale to 1 (ScrollTrigger wrapper scale takes over)
+                            duration: 0.5,
+                            ease: "power2.out",
+                            overwrite: "auto"
+                        });
                     }
                 }
+            }
+        };
+
+        window.addEventListener('mousemove', (e) => {
+            if (window.isAnimationComplete === false) return;
+            if (!window.wiggleDots || window.wiggleDots.length === 0) return;
+
+            window.realMouse.x = e.clientX;
+            window.realMouse.y = e.clientY;
+
+            const logoGrid = document.getElementById('logo-grid');
+            let realMouseInLogo = false;
+
+            if (logoGrid) {
+                const rect = logoGrid.getBoundingClientRect();
+                const padding = WIGGLE_DIST; // Catch mouse slightly before entering
+                if (e.clientX >= rect.left - padding && e.clientX <= rect.right + padding &&
+                    e.clientY >= rect.top - padding && e.clientY <= rect.bottom + padding) {
+                    realMouseInLogo = true;
+                }
+            }
+
+            // If real mouse just left the logo, snap fake mouse to it for a seamless handoff
+            if (window.isRealMouseActive && !realMouseInLogo && logoGrid) {
+                const rect = logoGrid.getBoundingClientRect();
+                window.fakeMouseProgress.x = gsap.utils.clamp(0, 1, (e.clientX - rect.left) / Math.max(1, rect.width));
+                window.fakeMouseProgress.y = gsap.utils.clamp(0, 1, (e.clientY - rect.top) / Math.max(1, rect.height));
+            }
+            window.isRealMouseActive = realMouseInLogo;
+
+            window.wiggleDots.forEach(dot => {
+                const isMainLogoDot = logoGrid && (logoGrid.contains(dot) || dot.hasAttribute('data-is-clone'));
+
+                // Skip logo dots if the real mouse is outside the logo (let fake mouse handle them)
+                if (!realMouseInLogo && isMainLogoDot) {
+                    return;
+                }
+                processWiggle(dot, window.realMouse.x, window.realMouse.y);
             });
         });
+
+        // Fake mouse loop for idle animation on the main logo
+        const animateFakeMouse = () => {
+            gsap.to(window.fakeMouseProgress, {
+                x: "random(0.1, 0.9)",
+                y: "random(0.1, 0.9)",
+                duration: "random(1.5, 2.4)",
+                ease: "sine.inOut",
+                onUpdate: () => {
+                    if (window.isAnimationComplete === false) return;
+                    if (window.isRealMouseActive) return; // Yield to real mouse
+                    if (!window.wiggleDots || window.wiggleDots.length === 0) return;
+
+                    // Stop the fake mouse effect if the user has scrolled
+                    const hero = document.getElementById('hero');
+                    const heroProgress = hero ? Math.max(0, -hero.getBoundingClientRect().top / Math.max(hero.offsetHeight, 1)) : 0;
+                    if (heroProgress > 0.05) return;
+
+                    const logoGrid = document.getElementById('logo-grid');
+                    if (!logoGrid) return;
+
+                    const rect = logoGrid.getBoundingClientRect();
+                    const fakeX = rect.left + rect.width * window.fakeMouseProgress.x;
+                    const fakeY = rect.top + rect.height * window.fakeMouseProgress.y;
+
+                    window.fakeMouse.x = fakeX;
+                    window.fakeMouse.y = fakeY;
+
+                    window.wiggleDots.forEach(dot => {
+                        // Fake mouse only applies to main logo (both real dots and overlay clones)
+                        const isMainLogoDot = logoGrid.contains(dot) || dot.hasAttribute('data-is-clone');
+                        if (!isMainLogoDot) return;
+                        processWiggle(dot, fakeX, fakeY);
+                    });
+                },
+                onComplete: animateFakeMouse
+            });
+        };
+        animateFakeMouse();
     }
 };
