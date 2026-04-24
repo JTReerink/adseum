@@ -153,20 +153,32 @@ function buildSections(sections) {
     sections.forEach((section, index) => {
         const sectionElement = document.createElement('section');
         sectionElement.id = section.id;
+        const isLast = index === sections.length - 1;
         sectionElement.className = [
             'cms-section',
             'w-full',
-            'min-h-screen',
             'flex',
             'flex-col',
             'items-center',
             'justify-center',
-            'py-24',
             'px-4',
             'relative',
-            'z-10',
-            index % 2 === 1 ? 'bg-gray-50/50' : ''
+            'z-10'
         ].join(' ').trim();
+        
+        sectionElement.style.minHeight = '75vh';
+        sectionElement.style.paddingTop = '5rem';
+        sectionElement.style.paddingBottom = '5rem';
+        if (!isLast) {
+            sectionElement.style.marginBottom = '4rem';
+        }
+
+        if (index > 0) {
+            const divider = document.createElement('div');
+            divider.className = 'w-full max-w-4xl mx-auto h-[1px] relative z-10';
+            divider.style.background = 'linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0) 100%)';
+            sectionsRoot.appendChild(divider);
+        }
 
         const inner = document.createElement('div');
         inner.className = section.isSplit

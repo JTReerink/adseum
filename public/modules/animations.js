@@ -337,7 +337,7 @@ export const initNavScrollAnimation = () => {
         ease: 'power2.inOut',
     }, 0);
 
-    tl.to('.blob', { duration: 0.5, opacity: 0, ease: 'power1.in' }, 0);
+    // Removed the blob fade-out so they persist globally
     tl.to(navbar, {
         duration: 0.6,
         backgroundColor: 'rgba(253,253,253,0.95)',
@@ -524,7 +524,7 @@ export const initScrollAnimations = () => {
 
         ScrollTrigger.create({
             trigger: section,
-            start: "top bottom",
+            start: "top 80%",
             once: true,
             invalidateOnRefresh: true, // Recalculate triggers naturally if height changes
             markers: false, // Set to true for debugging if needed
