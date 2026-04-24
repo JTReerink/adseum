@@ -129,6 +129,14 @@ export const renderText = (containerId, text, options = {}) => {
         }
     }
 
+    // Fallback: If letterGap was not explicitly set and not calculated by width fitting, 
+    // calculate a natural 1-column gap based on the dot size.
+    if (options.letterSpacing === undefined && (container.clientWidth === 0 || !text)) {
+        const currentDotSize = finalOptions.dotSize || DOT_SIZE;
+        const sizeRatio = currentDotSize / DOT_SIZE;
+        letterGap = currentDotSize + (DOT_SPACING * sizeRatio);
+    }
+
     // Use a single flex row for all words, centered together
     const rowContainer = document.createElement('div');
     rowContainer.style.display = 'flex';

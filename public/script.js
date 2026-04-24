@@ -50,7 +50,11 @@ function renderSplitGraphic(containerId, graphicName) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    renderText(containerId, graphicName, { dotSize: 18, letterSpacing: 14 });
+    const isDesktop = window.innerWidth >= 1024;
+    renderText(containerId, graphicName, {
+        dotSize: isDesktop ? 22 : 18,
+        letterSpacing: isDesktop ? 16 : 14
+    });
     decorateSplitGraphicDots(container);
 }
 
@@ -153,25 +157,44 @@ function buildSections(sections) {
     sections.forEach((section, index) => {
         const sectionElement = document.createElement('section');
         sectionElement.id = section.id;
+        const isLast = index === sections.length - 1;
         sectionElement.className = [
             'cms-section',
             'w-full',
-            'min-h-screen',
             'flex',
             'flex-col',
             'items-center',
             'justify-center',
-            'py-24',
             'px-4',
-            'relative',
-            'z-10',
-            index % 2 === 1 ? 'bg-gray-50/50' : ''
+            'relative'
         ].join(' ').trim();
+        
+        sectionElement.style.zIndex = '10';
+        
+        const isMobile = window.innerWidth < 768;
+        const isDesktop = window.innerWidth >= 1024;
+        sectionElement.style.minHeight = isMobile ? 'auto' : '75vh';
+        sectionElement.style.paddingTop = isMobile ? '1.5rem' : '5rem';
+        sectionElement.style.paddingBottom = isMobile ? '1.5rem' : '5rem';
+        if (!isLast) {
+            sectionElement.style.marginBottom = isMobile ? '1.5rem' : '2.5rem';
+        }
+
+        if (index > 0) {
+            const divider = document.createElement('div');
+            divider.className = 'w-full max-w-4xl mx-auto h-[1px] relative z-10';
+            divider.style.background = 'linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0) 100%)';
+            sectionsRoot.appendChild(divider);
+        }
 
         const inner = document.createElement('div');
         inner.className = section.isSplit
             ? 'cms-section-inner w-full max-w-6xl grid gap-12 lg:grid-cols-2 items-center'
             : 'cms-section-inner w-full max-w-5xl';
+        if (section.isSplit && isDesktop) {
+            inner.style.gridTemplateColumns = 'minmax(0, 0.9fr) minmax(0, 1.1fr)';
+            inner.style.columnGap = '2rem';
+        }
 
         const heading = document.createElement('div');
         heading.className = section.isSplit
@@ -196,7 +219,11 @@ function buildSections(sections) {
         }
 
         const body = document.createElement('div');
-        body.className = `cms-section-body rich-content ${section.isSplit ? 'max-w-none text-left' : 'max-w-2xl mx-auto text-center'} text-gray-700 text-lg md:text-xl leading-relaxed`;
+        body.className = `cms-section-body rich-content ${section.isSplit ? 'max-w-none text-left' : 'max-w-2xl mx-auto text-center'} text-lg md:text-xl leading-relaxed font-medium`;
+        
+        // Force the text to be pure black to prevent optical color blending from the background
+        body.style.color = '#111111';
+
         setRichContent(body, section.bodyHtml);
 
         const contentColumn = document.createElement('div');
@@ -206,6 +233,12 @@ function buildSections(sections) {
             contentColumn.appendChild(body);
             const graphicColumn = document.createElement('div');
             graphicColumn.className = 'cms-section-graphic flex justify-center items-center';
+            
+            // On mobile, the graphic bleeds out of its bounding box due to the 1.5 visualScale.
+            // We add a top margin to explicitly push it away from the text block.
+            if (window.innerWidth < 768) {
+                graphicColumn.style.marginTop = '4rem';
+            }
 
             if (section.graphicType === 'image' && section.graphicUrl) {
                 const img = document.createElement('img');
@@ -264,7 +297,12 @@ function renderDynamicDotContent() {
 
     if (navLogo) {
         navLogo.innerHTML = '';
-        renderText('nav-logo', 'ADseum', { dotSize: 3, visualScale: 1.15 });
+        // Logo size dynamically adjusts for mobile to prevent clipping
+        const isMobile = window.innerWidth < 768;
+        renderText('nav-logo', 'ADseum', { 
+            dotSize: isMobile ? 3 : 4.5, 
+            visualScale: isMobile ? 1 : 1.35 
+        });
     }
 
     content.sections.forEach((section) => {

@@ -28,6 +28,12 @@
 </head>
 
 <body class="bg-[#FDFDFD] overflow-x-hidden overflow-y-auto relative w-full">
+    <div class="fixed inset-0 pointer-events-none overflow-hidden" style="z-index: 0;">
+        <div class="blob absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full" style="background: rgba(255, 133, 170, 0.15); filter: blur(100px);"></div>
+        <div class="blob absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full" style="background: rgba(255, 112, 0, 0.15); filter: blur(120px);"></div>
+        <div class="blob absolute top-[20%] right-[10%] w-[40vw] h-[40vw] rounded-full" style="background: rgba(50, 90, 241, 0.15); filter: blur(80px);"></div>
+    </div>
+
     <nav id="navbar">
         <div id="nav-logo"></div>
         <button id="hamburger-btn" class="nav-hamburger" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mobile-menu">
@@ -43,11 +49,6 @@
     </div>
 
     <section id="hero" class="w-full flex flex-col justify-center items-center relative" style="height: 100vh; height: 100dvh;">
-        <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-            <div class="blob absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-pink-300/30 blur-[100px] rounded-full"></div>
-            <div class="blob absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] bg-yellow-200/40 blur-[120px] rounded-full"></div>
-            <div class="blob absolute top-[20%] right-[10%] w-[40vw] h-[40vw] bg-blue-200/30 blur-[80px] rounded-full"></div>
-        </div>
 
         <div id="logo-grid" class="relative z-10 w-full px-4 flex flex-wrap justify-center gap-y-4"></div>
 
