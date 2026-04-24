@@ -285,23 +285,42 @@ export const initNavScrollAnimation = () => {
     gsap.set('#nav-logo .dot-wrapper svg', { opacity: 1, scale: 1, x: 0, y: 0 });
     navLogoEl.style.opacity = '0';
 
-    // Measure logo's natural screen position, then lift it to position:fixed so it
-    // stays visible as the hero section scrolls away beneath it
-    const logoRect = logoGrid.getBoundingClientRect();
-    const navRect = navLogoEl.getBoundingClientRect();
-    const deltaX = navRect.left - logoRect.left;
-    const deltaY = navRect.top - logoRect.top;
-    const targetScale = navRect.height / logoRect.height;
+    // Temporarily reset any CSS transforms on nav-logo to measure its true final resting position
+    const previousTransform = navLogoEl.style.transform;
+    navLogoEl.style.transform = 'translateY(0)';
+
+    // Measure the actual exact bounding box of the first letter ("A") to get an accurate scale ratio
+    const heroA = (logoGrid.firstElementChild && logoGrid.firstElementChild.firstElementChild) || logoGrid;
+    const navA = (navLogoEl.firstElementChild && navLogoEl.firstElementChild.firstElementChild) || navLogoEl;
+
+    const heroARect = heroA.getBoundingClientRect();
+    const navARect = navA.getBoundingClientRect();
+    const gridRect = logoGrid.getBoundingClientRect();
+    const navWordRect = navLogoEl.getBoundingClientRect();
+
+    navLogoEl.style.transform = previousTransform; // restore
+
+    const targetScale = navARect.width / heroARect.width;
+
+    // The hero text is centered in logoGrid, so gridCX is the true center of the hero text.
+    // The nav text shrink-wraps its container, so navWordRect center is the true center of the nav text.
+    const gridCX = gridRect.left + gridRect.width / 2;
+    const gridCY = gridRect.top + gridRect.height / 2;
+    const navCX = navWordRect.left + navWordRect.width / 2;
+    const navCY = navWordRect.top + navWordRect.height / 2;
+
+    const deltaX = navCX - gridCX;
+    const deltaY = navCY - gridCY;
 
     gsap.set(logoGrid, {
         position: 'fixed',
-        top: logoRect.top,
-        left: logoRect.left,
-        width: logoRect.width,
-        height: logoRect.height,
+        top: gridRect.top,
+        left: gridRect.left,
+        width: gridRect.width,
+        height: gridRect.height,
         margin: 0,
         zIndex: 51, // Above navbar so it appears to fly into position
-        transformOrigin: 'top left',
+        transformOrigin: 'center center',
     });
 
     const tl = gsap.timeline({
