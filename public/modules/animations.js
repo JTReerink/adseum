@@ -336,12 +336,13 @@ export const initNavScrollAnimation = () => {
             },
             onLeave: () => {
                 // Logo has landed at nav corner — swap to nav logo instantly
-                navLogoEl.style.opacity = '1';
+                navLogoEl.classList.add('visible');
+                navLogoEl.style.opacity = ''; // Clear inline style if present
                 gsap.set(logoGrid, { opacity: 0 });
             },
             onEnterBack: () => {
                 // User scrolled back into hero — restore hero logo
-                navLogoEl.style.opacity = '0';
+                navLogoEl.classList.remove('visible');
                 gsap.set(logoGrid, { opacity: 1 });
             },
         }
