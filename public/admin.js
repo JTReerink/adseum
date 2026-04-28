@@ -77,16 +77,55 @@ function getSectionDisplayName(section = {}) { return deriveSectionName(section)
 function getLocalizedAdminValue(value, locale = DEFAULT_LOCALE) { return getLocalizedValue(value, locale); }
 
 function showToast(message, type = '') {
-    toastEl.textContent = message;
+    toastEl.innerHTML = '';
+    const msgSpan = document.createElement('span');
+    msgSpan.textContent = message;
+    toastEl.appendChild(msgSpan);
+
+    if (type === 'error') {
+        const closeBtn = document.createElement('button');
+        closeBtn.setAttribute('aria-label', 'Dismiss');
+        closeBtn.textContent = '✕';
+        closeBtn.className = 'cms-toast-close';
+        closeBtn.addEventListener('click', () => {
+            clearTimeout(toastEl._timer);
+            toastEl.classList.remove('visible');
+        });
+        toastEl.appendChild(closeBtn);
+    }
+
     toastEl.className = 'cms-toast visible' + (type ? ` toast-${type}` : '');
     clearTimeout(toastEl._timer);
-    toastEl._timer = setTimeout(() => { toastEl.classList.remove('visible'); }, 4000);
+    toastEl._timer = setTimeout(() => { toastEl.classList.remove('visible'); }, type === 'error' ? 9000 : 4000);
 }
 
 function setNotice(element, message, isError = false) {
-    element.textContent = message;
+    if (isError) {
+        element.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:-1px;margin-right:5px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' + escapeHtml(message);
+    } else {
+        element.textContent = message;
+    }
     element.classList.remove('text-red-600', 'text-slate-500', 'text-slate-600', 'text-emerald-600', 'text-gray-500');
     element.classList.add(isError ? 'text-red-600' : 'text-emerald-600');
+}
+
+function getFirebaseErrorMessage(error) {
+    const code = (error?.code || '').replace('firestore/', '').replace('auth/', '');
+    const messages = {
+        'permission-denied':  'Je hebt geen toestemming om op te slaan. Je sessie is mogelijk verlopen — probeer uit te loggen en opnieuw in te loggen.',
+        'unauthenticated':    'Je bent niet meer ingelogd. Log opnieuw in.',
+        'unavailable':        'De server is tijdelijk onbereikbaar. Controleer je internetverbinding.',
+        'deadline-exceeded':  'Het verzoek duurde te lang. Probeer het opnieuw.',
+        'quota-exceeded':     'Opslagquotum overschreden. Neem contact op met de ontwikkelaar.',
+        'resource-exhausted': 'Te veel verzoeken tegelijk. Wacht even en probeer opnieuw.',
+        'not-found':          'Het document kon niet worden gevonden.',
+        'internal':           'Er is een interne serverfout opgetreden. Probeer het later opnieuw.',
+        'network-request-failed': 'Kan de server niet bereiken. Controleer je internetverbinding.',
+        'cancelled':          'De bewerking is geannuleerd.',
+    };
+    if (messages[code]) return messages[code];
+    if (code) return `Er is iets misgegaan (${code}). Probeer opnieuw of neem contact op met de ontwikkelaar.`;
+    return 'Er is een onverwachte fout opgetreden. Probeer het opnieuw.';
 }
 
 function showShell(view) {
@@ -180,6 +219,11 @@ function renderInlineValidation(card, index) {
     if (!section) return;
 
     const issues = getInlineValidation(section, index);
+
+    // Red badge on the section number when there are errors (visible even when collapsed)
+    const numberBadge = card.querySelector('.section-number');
+    if (numberBadge) numberBadge.classList.toggle('has-error', issues.length > 0);
+
     const existingHints = card.querySelectorAll('.cms-inline-error, .cms-inline-success, .glyph-status');
     existingHints.forEach(el => el.remove());
 
@@ -541,7 +585,7 @@ function renderEditors(entries) {
                 await loadEditors();
             } catch (error) {
                 console.error('Error removing editor:', error);
-                showToast('Could not remove that person right now.', 'error');
+                showToast(getFirebaseErrorMessage(error), 'error');
             }
         });
 
@@ -602,17 +646,32 @@ saveContentButton.addEventListener('click', async () => {
 
     const validationErrors = getValidationSnapshot();
     if (validationErrors.length > 0) {
-        setNotice(contentNotice, validationErrors[0], true);
-        showToast('Please fix the issues above before publishing.', 'error');
+        const total = validationErrors.length;
+        const extra = total - 1;
+        const summary = extra > 0
+            ? `${validationErrors[0]} (+${extra} meer ${extra === 1 ? 'probleem' : 'problemen'})`
+            : validationErrors[0];
+        setNotice(contentNotice, summary, true);
+        showToast(
+            total === 1 ? 'Los 1 probleem op voor je publiceert.' : `Los ${total} problemen op voor je publiceert.`,
+            'error'
+        );
 
-        // Expand the first section with errors
+        // Expand sections with errors and scroll to the first one
+        let firstErrorCard = null;
         siteContent.sections.forEach((section, index) => {
             const issues = getInlineValidation(section, index);
-            if (issues.length > 0 && collapsedSections.has(index)) {
+            if (issues.length > 0) {
                 collapsedSections.delete(index);
+                if (!firstErrorCard) {
+                    firstErrorCard = sectionsList.querySelector(`[data-section-index="${index}"]`);
+                }
             }
         });
         renderSections();
+        if (firstErrorCard) {
+            requestAnimationFrame(() => firstErrorCard.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+        }
         return;
     }
 
@@ -658,8 +717,9 @@ saveContentButton.addEventListener('click', async () => {
         setTimeout(refreshPreview, 1000);
     } catch (error) {
         console.error('Error saving homepage content:', error);
-        setNotice(contentNotice, 'Publishing failed. Please try again.', true);
-        showToast('Publishing failed. Check your connection and try again.', 'error');
+        const detail = getFirebaseErrorMessage(error);
+        setNotice(contentNotice, `Publiceren mislukt — ${detail}`, true);
+        showToast(detail, 'error');
     } finally {
         saveContentButton.disabled = false;
         saveContentButton.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Publish changes';
@@ -702,7 +762,7 @@ editorForm.addEventListener('submit', async (event) => {
         await loadEditors();
     } catch (error) {
         console.error('Error adding editor:', error);
-        showToast('Could not add that person right now.', 'error');
+        showToast(getFirebaseErrorMessage(error), 'error');
     }
 });
 

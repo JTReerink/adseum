@@ -440,8 +440,8 @@ export const initDotReverseAnimation = () => {
         cloneData.forEach(({ svg, wrapper, clone, clonePath, inkD, stdD, inkSize, stdSize }) => {
             // Measure the dot's exact screen position at scroll=0 (logo in hero center)
             const rect = svg.getBoundingClientRect();
-            const cx = rect.left + window.scrollX + rect.width / 2;
-            const cy = rect.top + window.scrollY + rect.height / 2;
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
 
             gsap.set(wrapper, {
                 left: cx - stdSize / 2,
