@@ -1,7 +1,9 @@
 import { renderText } from './modules/renderer.js';
 import { animateDots, initAnimations, initScrollAnimations, initNavScrollAnimation, initDotReverseAnimation } from './modules/animations.js';
 import {
+    DEFAULT_LOCALE,
     DEFAULT_SITE_CONTENT,
+    getLocalizedValue,
     listenToLetters,
     listenToSiteContent,
     sanitizeRichHtml,
@@ -31,9 +33,12 @@ const mobileMenu = document.getElementById('mobile-menu');
 const mobileNavLinks = document.getElementById('mobile-nav-links');
 const sectionsRoot = document.getElementById('sections-root');
 const heroSubtitle = document.getElementById('hero-subtitle-content');
+const localeSwitchButtons = Array.from(document.querySelectorAll('[data-locale-switch]'));
 let mobileMenuOpen = false;
+let currentLocale = localStorage.getItem('adseum-locale') === 'en' ? 'en' : DEFAULT_LOCALE;
 
 const getSiteContent = () => window.siteContent || DEFAULT_SITE_CONTENT;
+const getLocalizedText = (value, locale = currentLocale) => getLocalizedValue(value, locale);
 
 function decorateSplitGraphicDots(container) {
     if (!container) return;
@@ -91,6 +96,7 @@ function buildNavigation(sections) {
     mobileNavLinks.innerHTML = '';
 
     sections.forEach((section) => {
+        const localizedLabel = getLocalizedText(section.navLabel);
         const item = document.createElement('li');
         const link = document.createElement('a');
         link.href = `#${section.id}`;
@@ -100,12 +106,12 @@ function buildNavigation(sections) {
             const dotLabel = document.createElement('span');
             dotLabel.id = `nav-label-${section.id}`;
             dotLabel.className = 'nav-dot-label nav-text-label';
-            dotLabel.textContent = section.navLabel;
+            dotLabel.textContent = localizedLabel;
             link.appendChild(dotLabel);
         } else {
             const textLabel = document.createElement('span');
             textLabel.className = 'nav-text-label';
-            textLabel.textContent = section.navLabel;
+            textLabel.textContent = localizedLabel;
             link.appendChild(textLabel);
         }
 
@@ -116,7 +122,7 @@ function buildNavigation(sections) {
         const mobileLink = document.createElement('a');
         mobileLink.href = `#${section.id}`;
         mobileLink.className = 'mobile-menu-link';
-        mobileLink.textContent = section.navLabel;
+        mobileLink.textContent = localizedLabel;
         mobileItem.appendChild(mobileLink);
         mobileNavLinks.appendChild(mobileItem);
     });
@@ -126,6 +132,8 @@ function buildSections(sections) {
     sectionsRoot.innerHTML = '';
 
     sections.forEach((section, index) => {
+        const localizedTitle = getLocalizedText(section.title);
+        const localizedBodyHtml = getLocalizedText(section.bodyHtml);
         const sectionElement = document.createElement('section');
         sectionElement.id = section.id;
         const isLast = index === sections.length - 1;
@@ -181,13 +189,13 @@ function buildSections(sections) {
             if (isSplitRight) dotHeading.style.justifyContent = 'flex-end';
             const fallbackHeading = document.createElement('h2');
             fallbackHeading.className = `dot-fallback-heading ${section.isSplit ? (isSplitRight ? 'text-right' : 'text-left') : 'text-center'}`;
-            fallbackHeading.textContent = section.title;
+            fallbackHeading.textContent = localizedTitle;
             dotHeading.appendChild(fallbackHeading);
             heading.appendChild(dotHeading);
         } else {
             const plainHeading = document.createElement('h2');
             plainHeading.className = `dot-fallback-heading ${section.isSplit ? (isSplitRight ? 'text-right' : 'text-left') : 'text-center'}`;
-            plainHeading.textContent = section.title;
+            plainHeading.textContent = localizedTitle;
             heading.appendChild(plainHeading);
         }
 
@@ -197,7 +205,7 @@ function buildSections(sections) {
         // Force the text to be pure black to prevent optical color blending from the background
         body.style.color = '#111111';
 
-        setRichContent(body, section.bodyHtml);
+        setRichContent(body, localizedBodyHtml);
 
         const contentColumn = document.createElement('div');
         contentColumn.className = section.isSplit ? `space-y-8 ${isSplitRight ? 'lg:order-2' : 'lg:order-1'}` : '';
@@ -216,7 +224,7 @@ function buildSections(sections) {
             if (section.graphicType === 'image' && section.graphicUrl) {
                 const img = document.createElement('img');
                 img.src = section.graphicUrl;
-                img.alt = section.title;
+                img.alt = localizedTitle;
                 img.className = 'w-full h-auto rounded-3xl border border-gray-200 shadow-sm';
                 graphicColumn.appendChild(img);
             } else if (section.graphicType === 'dot' && section.graphicName && window.letters && window.letters[section.graphicName]) {
@@ -255,7 +263,7 @@ function buildSections(sections) {
 
 function renderStaticContent() {
     const content = getSiteContent();
-    setRichContent(heroSubtitle, content.hero.subtitleHtml);
+    setRichContent(heroSubtitle, getLocalizedText(content.hero.subtitleHtml));
     buildNavigation(content.sections);
     buildSections(content.sections);
 }
@@ -283,7 +291,7 @@ function renderDynamicDotContent() {
         if (section.navUseDots) {
             renderDotField(
                 document.getElementById(`nav-label-${section.id}`),
-                section.navLabel,
+                getLocalizedText(section.navLabel),
                 { dotSize: 4, monochrome: true, letterSpacing: 4, gap: 1.5, visualScale: 1.3 },
                 'span',
                 'nav-text-label'
@@ -293,7 +301,7 @@ function renderDynamicDotContent() {
         if (section.titleUseDots) {
             renderDotField(
                 document.getElementById(`section-title-${section.id}`),
-                section.title,
+                getLocalizedText(section.title),
                 { dotSize: 8, monochrome: true, visualScale: 1.3 },
                 'h2',
                 `dot-fallback-heading ${section.isSplit ? (section.splitLayout === 'text-right' ? 'text-right' : 'text-left') : 'text-center'}`
@@ -308,6 +316,74 @@ function renderDynamicDotContent() {
             }
         }
     });
+}
+
+function syncLocaleSwitchUi() {
+    localeSwitchButtons.forEach((button) => {
+        const isActive = button.dataset.localeSwitch === currentLocale;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
+    });
+}
+
+function renderLocalizedDynamicContent() {
+    const content = getSiteContent();
+
+    content.sections.forEach((section) => {
+        if (section.navUseDots) {
+            renderDotField(
+                document.getElementById(`nav-label-${section.id}`),
+                getLocalizedText(section.navLabel),
+                { dotSize: 4, monochrome: true, letterSpacing: 4, gap: 1.5, visualScale: 1.3 },
+                'span',
+                'nav-text-label'
+            );
+        }
+
+        if (section.titleUseDots) {
+            renderDotField(
+                document.getElementById(`section-title-${section.id}`),
+                getLocalizedText(section.title),
+                { dotSize: 8, monochrome: true, visualScale: 1.3 },
+                'h2',
+                `dot-fallback-heading ${section.isSplit ? (section.splitLayout === 'text-right' ? 'text-right' : 'text-left') : 'text-center'}`
+            );
+        }
+
+        if (section.isSplit && section.graphicType === 'dot') {
+            const graphicWrapper = document.getElementById(`section-graphic-${section.id}`);
+            if (graphicWrapper && section.graphicName) {
+                graphicWrapper.innerHTML = '';
+                renderSplitGraphic(graphicWrapper.id, section.graphicName);
+            }
+        }
+    });
+}
+
+function rerenderLocalizedPage() {
+    renderStaticContent();
+
+    if (!lettersReady || !siteContentReady) {
+        return;
+    }
+
+    renderLocalizedDynamicContent();
+
+    if (window.ScrollTrigger) {
+        ScrollTrigger.getAll().forEach((trigger) => {
+            if (trigger.trigger?.id !== 'hero') {
+                trigger.kill();
+            }
+        });
+        initScrollAnimations();
+    }
+}
+
+function setLocale(locale) {
+    currentLocale = locale === 'en' ? 'en' : DEFAULT_LOCALE;
+    localStorage.setItem('adseum-locale', currentLocale);
+    syncLocaleSwitchUi();
+    rerenderLocalizedPage();
 }
 
 function handleRender() {
@@ -433,6 +509,9 @@ function initNavbar() {
     navLinks.addEventListener('click', handleNavClick);
     mobileNavLinks.addEventListener('click', handleNavClick);
     hamburgerButton.addEventListener('click', toggleMobileMenu);
+    localeSwitchButtons.forEach((button) => {
+        button.addEventListener('click', () => setLocale(button.dataset.localeSwitch));
+    });
 
     window.addEventListener('resize', () => {
         if (window.innerWidth >= 768 && mobileMenuOpen) {
@@ -456,6 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderStaticContent();
     initNavbar();
+    syncLocaleSwitchUi();
 
     listenToLetters(() => {
         lettersReady = true;

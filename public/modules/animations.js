@@ -297,15 +297,19 @@ export const initNavScrollAnimation = () => {
     const navARect = navA.getBoundingClientRect();
     const gridRect = logoGrid.getBoundingClientRect();
     const navWordRect = navLogoEl.getBoundingClientRect();
+    const heroScrollX = window.scrollX;
+    const heroScrollY = window.scrollY;
 
     navLogoEl.style.transform = previousTransform; // restore
 
     const targetScale = navARect.width / heroARect.width;
 
-    // The hero text is centered in logoGrid, so gridCX is the true center of the hero text.
-    // The nav text shrink-wraps its container, so navWordRect center is the true center of the nav text.
-    const gridCX = gridRect.left + gridRect.width / 2;
-    const gridCY = gridRect.top + gridRect.height / 2;
+    // Measure the hero logo in scroll=0 coordinates so re-renders while scrolled
+    // don't permanently shift the logo's home position upward.
+    const gridStartLeft = gridRect.left + heroScrollX;
+    const gridStartTop = gridRect.top + heroScrollY;
+    const gridCX = gridStartLeft + gridRect.width / 2;
+    const gridCY = gridStartTop + gridRect.height / 2;
     const navCX = navWordRect.left + navWordRect.width / 2;
     const navCY = navWordRect.top + navWordRect.height / 2;
 
@@ -314,8 +318,8 @@ export const initNavScrollAnimation = () => {
 
     gsap.set(logoGrid, {
         position: 'fixed',
-        top: gridRect.top,
-        left: gridRect.left,
+        top: gridStartTop,
+        left: gridStartLeft,
         width: gridRect.width,
         height: gridRect.height,
         margin: 0,
@@ -436,8 +440,8 @@ export const initDotReverseAnimation = () => {
         cloneData.forEach(({ svg, wrapper, clone, clonePath, inkD, stdD, inkSize, stdSize }) => {
             // Measure the dot's exact screen position at scroll=0 (logo in hero center)
             const rect = svg.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
+            const cx = rect.left + window.scrollX + rect.width / 2;
+            const cy = rect.top + window.scrollY + rect.height / 2;
 
             gsap.set(wrapper, {
                 left: cx - stdSize / 2,

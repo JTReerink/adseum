@@ -6,14 +6,18 @@ import {
 } from './modules/admin-access.js';
 import { requireAuth } from './modules/auth-guard.js';
 import {
+    DEFAULT_LOCALE,
     DEFAULT_SITE_CONTENT,
     createSection,
     deriveSectionId,
     deriveSectionName,
     escapeHtml,
+    getLocalizedValue,
     listenToLetters,
     loadSiteContent,
+    normalizeLocalizedValue,
     sanitizeRichHtml,
+    SUPPORTED_LOCALES,
     validateDotText
 } from './modules/database.js';
 import {
@@ -40,7 +44,9 @@ const authStatus = document.getElementById('auth-status');
 const deniedMessage = document.getElementById('denied-message');
 const signOutButton = document.getElementById('sign-out-button');
 const deniedSignOut = document.getElementById('denied-sign-out');
-const heroSubtitleEditor = document.getElementById('hero-subtitle-editor');
+const heroSubtitleEditors = Object.fromEntries(
+    SUPPORTED_LOCALES.map((locale) => [locale, document.getElementById(`hero-subtitle-editor-${locale}`)])
+);
 const addSectionButton = document.getElementById('add-section-button');
 const collapseAllButton = document.getElementById('collapse-all-button');
 const sectionsList = document.getElementById('sections-list');
@@ -68,6 +74,7 @@ let collapsedSections = new Set();
 /* ── Helpers ── */
 function normalizeEmail(email = '') { return email.trim().toLowerCase(); }
 function getSectionDisplayName(section = {}) { return deriveSectionName(section); }
+function getLocalizedAdminValue(value, locale = DEFAULT_LOCALE) { return getLocalizedValue(value, locale); }
 
 function showToast(message, type = '') {
     toastEl.textContent = message;
@@ -97,11 +104,14 @@ function refreshPreview() {
 /* ── Validation ── */
 function getInlineValidation(section, index) {
     const issues = [];
-    const sectionName = (section.navLabel || '').trim();
+    const localizedNavLabel = normalizeLocalizedValue(section.navLabel, (input) => input.trim());
+    const sectionName = localizedNavLabel.nl;
 
-    if (!sectionName.trim()) {
-        issues.push({ field: 'navLabel', message: 'Give this section a menu name so visitors can find it.' });
-    }
+    SUPPORTED_LOCALES.forEach((locale) => {
+        if (!localizedNavLabel[locale].trim()) {
+            issues.push({ field: `navLabel.${locale}`, message: `Add a ${locale === 'nl' ? 'Dutch' : 'English'} menu name for this section.` });
+        }
+    });
 
     const id = deriveSectionId(section);
     const otherIds = siteContent.sections
@@ -113,22 +123,26 @@ function getInlineValidation(section, index) {
 
     if (lettersReady) {
         if (SECTION_MENU_USES_DOTS) {
-            const missing = validateDotText(sectionName, lettersMap);
-            if (missing.length > 0) {
-                issues.push({
-                    field: 'navLabel',
-                    message: `The characters ${missing.join(', ')} haven't been designed yet. Open the Letter Designer to create them before publishing.`
-                });
-            }
+            SUPPORTED_LOCALES.forEach((locale) => {
+                const missing = validateDotText(localizedNavLabel[locale], lettersMap);
+                if (missing.length > 0) {
+                    issues.push({
+                        field: `navLabel.${locale}`,
+                        message: `The ${locale === 'nl' ? 'Dutch' : 'English'} menu name uses ${missing.join(', ')} which haven't been designed yet.`
+                    });
+                }
+            });
         }
         if (SECTION_TITLE_USES_DOTS) {
-            const missing = validateDotText(sectionName, lettersMap);
-            if (missing.length > 0) {
-                issues.push({
-                    field: 'navLabel',
-                    message: `The characters ${missing.join(', ')} haven't been designed yet. Open the Letter Designer to create them before publishing.`
-                });
-            }
+            SUPPORTED_LOCALES.forEach((locale) => {
+                const missing = validateDotText(localizedNavLabel[locale], lettersMap);
+                if (missing.length > 0) {
+                    issues.push({
+                        field: `title.${locale}`,
+                        message: `The ${locale === 'nl' ? 'Dutch' : 'English'} heading uses ${missing.join(', ')} which haven't been designed yet.`
+                    });
+                }
+            });
         }
 
         if (section.isSplit) {
@@ -247,11 +261,18 @@ function renderSections() {
 
             <div class="cms-section-card-body" style="${isCollapsed ? 'max-height:0;opacity:0;padding-top:0;padding-bottom:0;' : ''}">
                 <div class="mb-4">
-                    <label class="block">
-                        <span class="cms-field-label">Menu name</span>
-                        <input type="text" class="cms-input" value="${escapeHtml(section.navLabel || '')}" data-section-field="navLabel">
-                        <p class="cms-field-help">This one name is used for the menu label, the section heading, and the URL anchor.</p>
-                    </label>
+                    <span class="cms-field-label">Menu name / section heading</span>
+                    <p class="cms-field-help mb-3">These names are used for the menu label, the section heading, and the URL anchor. The Dutch name determines the anchor slug.</p>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <label class="block">
+                            <span class="cms-field-label">Nederlands</span>
+                            <input type="text" class="cms-input" value="${escapeHtml(getLocalizedAdminValue(section.navLabel, 'nl'))}" data-section-field="navLabel" data-locale="nl">
+                        </label>
+                        <label class="block">
+                            <span class="cms-field-label">English</span>
+                            <input type="text" class="cms-input" value="${escapeHtml(getLocalizedAdminValue(section.navLabel, 'en'))}" data-section-field="navLabel" data-locale="en">
+                        </label>
+                    </div>
                     <div data-validation-target="autoFields" class="mt-2"></div>
                 </div>
 
@@ -331,20 +352,40 @@ function renderSections() {
 
                 <div class="mt-4 pt-4 border-t border-gray-100">
                     <p class="cms-field-label">Section content</p>
-                    <p class="cms-field-help mb-2">Write the text visitors will see in this section. Use the toolbar to format.</p>
+                    <p class="cms-field-help mb-2">Fill in both languages clearly here. The visitor can switch between Dutch and English on the live site.</p>
                     <div class="rich-editor-wrap">
-                        <div class="editor-toolbar" data-editor-toolbar data-target="section-body-editor-${index}">
-                            <button type="button" data-editor-command="bold">Bold</button>
-                            <button type="button" data-editor-command="italic">Italic</button>
-                            <button type="button" data-editor-command="underline">Underline</button>
-                            <button type="button" data-editor-block="h2">H2</button>
-                            <button type="button" data-editor-block="h3">H3</button>
-                            <button type="button" data-editor-block="blockquote">Quote</button>
-                            <button type="button" data-editor-action="link">Link</button>
-                            <button type="button" data-editor-action="clear">Clear</button>
+                        <div class="p-4 space-y-4">
+                            <div>
+                                <p class="cms-field-label">Nederlands</p>
+                                <div class="editor-toolbar" data-editor-toolbar data-target="section-body-editor-${index}-nl">
+                                    <button type="button" data-editor-command="bold">Bold</button>
+                                    <button type="button" data-editor-command="italic">Italic</button>
+                                    <button type="button" data-editor-command="underline">Underline</button>
+                                    <button type="button" data-editor-block="h2">H2</button>
+                                    <button type="button" data-editor-block="h3">H3</button>
+                                    <button type="button" data-editor-block="blockquote">Quote</button>
+                                    <button type="button" data-editor-action="link">Link</button>
+                                    <button type="button" data-editor-action="clear">Clear</button>
+                                </div>
+                                <div id="section-body-editor-${index}-nl" class="rich-editor-surface rich-content" contenteditable="true"
+                                    data-section-rich-field="bodyHtml" data-locale="nl" data-placeholder="Schrijf hier de Nederlandse sectietekst...">${sanitizeRichHtml(getLocalizedAdminValue(section.bodyHtml, 'nl'))}</div>
+                            </div>
+                            <div>
+                                <p class="cms-field-label">English</p>
+                                <div class="editor-toolbar" data-editor-toolbar data-target="section-body-editor-${index}-en">
+                                    <button type="button" data-editor-command="bold">Bold</button>
+                                    <button type="button" data-editor-command="italic">Italic</button>
+                                    <button type="button" data-editor-command="underline">Underline</button>
+                                    <button type="button" data-editor-block="h2">H2</button>
+                                    <button type="button" data-editor-block="h3">H3</button>
+                                    <button type="button" data-editor-block="blockquote">Quote</button>
+                                    <button type="button" data-editor-action="link">Link</button>
+                                    <button type="button" data-editor-action="clear">Clear</button>
+                                </div>
+                                <div id="section-body-editor-${index}-en" class="rich-editor-surface rich-content" contenteditable="true"
+                                    data-section-rich-field="bodyHtml" data-locale="en" data-placeholder="Write the English section content here...">${sanitizeRichHtml(getLocalizedAdminValue(section.bodyHtml, 'en'))}</div>
+                            </div>
                         </div>
-                        <div id="section-body-editor-${index}" class="rich-editor-surface rich-content" contenteditable="true"
-                            data-section-rich-field="bodyHtml" data-placeholder="Write your section content here...">${sanitizeRichHtml(section.bodyHtml)}</div>
                     </div>
                 </div>
             </div>
@@ -356,17 +397,24 @@ function renderSections() {
 
 /* ── Sync editors ── */
 function syncHeroEditor() {
-    siteContent.hero.subtitleHtml = sanitizeRichHtml(heroSubtitleEditor.innerHTML);
+    const current = normalizeLocalizedValue(siteContent.hero.subtitleHtml, sanitizeRichHtml);
+    SUPPORTED_LOCALES.forEach((locale) => {
+        current[locale] = sanitizeRichHtml(heroSubtitleEditors[locale]?.innerHTML || '');
+    });
+    siteContent.hero.subtitleHtml = current;
 }
 
 function syncSectionRichEditor(surface) {
     const card = surface.closest('[data-section-index]');
     if (!card) return;
     const index = Number(card.dataset.sectionIndex);
-    siteContent.sections[index].bodyHtml = sanitizeRichHtml(surface.innerHTML);
+    const locale = surface.dataset.locale || DEFAULT_LOCALE;
+    const current = normalizeLocalizedValue(siteContent.sections[index].bodyHtml, sanitizeRichHtml);
+    current[locale] = sanitizeRichHtml(surface.innerHTML);
+    siteContent.sections[index].bodyHtml = current;
 }
 
-function updateSectionField(index, field, value) {
+function updateSectionField(index, field, value, locale = null) {
     if (!siteContent.sections[index]) return;
 
     if (field === 'isSplit') {
@@ -387,10 +435,16 @@ function updateSectionField(index, field, value) {
         renderSections();
         return;
     } else {
-        siteContent.sections[index][field] = value;
+        if (locale && ['navLabel', 'title'].includes(field)) {
+            const current = normalizeLocalizedValue(siteContent.sections[index][field], (input) => input.trim());
+            current[locale] = String(value || '').trim();
+            siteContent.sections[index][field] = current;
+        } else {
+            siteContent.sections[index][field] = value;
+        }
         if (field === 'navLabel') {
-            siteContent.sections[index].title = value.trim();
-            siteContent.sections[index].id = deriveSectionId({ navLabel: value });
+            siteContent.sections[index].title = normalizeLocalizedValue(siteContent.sections[index].navLabel, (input) => input.trim());
+            siteContent.sections[index].id = deriveSectionId({ navLabel: getLocalizedAdminValue(siteContent.sections[index].navLabel, 'nl') });
         }
     }
 
@@ -442,7 +496,7 @@ function applyEditorCommand(button) {
         document.execCommand(button.dataset.editorCommand, false, button.dataset.editorValue || null);
     }
 
-    if (surface === heroSubtitleEditor) syncHeroEditor();
+    if (Object.values(heroSubtitleEditors).includes(surface)) syncHeroEditor();
     else syncSectionRichEditor(surface);
 }
 
@@ -566,14 +620,16 @@ saveContentButton.addEventListener('click', async () => {
     if (!confirmed) return;
 
     const payload = {
-        hero: { subtitleHtml: sanitizeRichHtml(siteContent.hero.subtitleHtml) },
+        hero: {
+            subtitleHtml: normalizeLocalizedValue(siteContent.hero.subtitleHtml, sanitizeRichHtml)
+        },
         sections: siteContent.sections.map((section) => ({
             id: deriveSectionId(section),
-            navLabel: getSectionDisplayName(section),
+            navLabel: normalizeLocalizedValue(section.navLabel, (input) => input.trim()),
             navUseDots: SECTION_MENU_USES_DOTS,
-            title: getSectionDisplayName(section),
+            title: normalizeLocalizedValue(section.title, (input) => input.trim()),
             titleUseDots: SECTION_TITLE_USES_DOTS,
-            bodyHtml: sanitizeRichHtml(section.bodyHtml),
+            bodyHtml: normalizeLocalizedValue(section.bodyHtml, sanitizeRichHtml),
             specialType: section.specialType || null,
             isSplit: Boolean(section.isSplit),
             splitLayout: section.splitLayout === 'text-right' ? 'text-right' : 'text-left',
@@ -691,7 +747,12 @@ sectionsList.addEventListener('input', (event) => {
     const index = Number(card.dataset.sectionIndex);
 
     if (event.target.matches('[data-section-field]')) {
-        updateSectionField(index, event.target.dataset.sectionField, event.target.type === 'checkbox' ? event.target.checked : event.target.value);
+        updateSectionField(
+            index,
+            event.target.dataset.sectionField,
+            event.target.type === 'checkbox' ? event.target.checked : event.target.value,
+            event.target.dataset.locale || null
+        );
         return;
     }
 
@@ -772,7 +833,9 @@ document.addEventListener('click', (event) => {
     applyEditorCommand(editorButton);
 });
 
-heroSubtitleEditor.addEventListener('input', syncHeroEditor);
+Object.values(heroSubtitleEditors).forEach((editor) => {
+    editor?.addEventListener('input', syncHeroEditor);
+});
 
 animationPauseInput.addEventListener('input', () => {
     siteContent.animationPause = parseFloat(animationPauseInput.value) || 1.5;
@@ -791,7 +854,11 @@ try {
     showToast('Could not load saved content. Showing defaults.', 'error');
 }
 
-heroSubtitleEditor.innerHTML = siteContent.hero.subtitleHtml;
+SUPPORTED_LOCALES.forEach((locale) => {
+    if (heroSubtitleEditors[locale]) {
+        heroSubtitleEditors[locale].innerHTML = getLocalizedAdminValue(siteContent.hero.subtitleHtml, locale);
+    }
+});
 animationPauseInput.value = siteContent.animationPause ?? 1.5;
 animationSpeedInput.value = siteContent.animationSpeed ?? 1.0;
 renderSections();

@@ -18,6 +18,9 @@ const DEFAULT_SECTION_BODIES = {
     contact: '<p>Placeholder for Contact information. Reach out to collaborate with us.</p>'
 };
 
+export const SUPPORTED_LOCALES = ['nl', 'en'];
+export const DEFAULT_LOCALE = 'nl';
+
 export function normalizeHexColor(value = '') {
     const trimmed = value.trim();
     const match = trimmed.match(/^#([0-9a-f]{6})$/i);
@@ -62,8 +65,8 @@ export function deriveSectionName(section = {}) {
         return section.trim() || 'New Section';
     }
 
-    const navLabel = typeof section.navLabel === 'string' ? section.navLabel.trim() : '';
-    const title = typeof section.title === 'string' ? section.title.trim() : '';
+    const navLabel = getLocalizedValue(section.navLabel || '', DEFAULT_LOCALE).trim();
+    const title = getLocalizedValue(section.title || '', DEFAULT_LOCALE).trim();
     return navLabel || title || 'New Section';
 }
 
@@ -98,19 +101,53 @@ export function sanitizeRichHtml(html = '') {
     }).trim();
 }
 
+export function normalizeLocalizedValue(value = '', sanitizer = (input) => input) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const normalized = {};
+        SUPPORTED_LOCALES.forEach((locale) => {
+            normalized[locale] = sanitizer(typeof value[locale] === 'string' ? value[locale] : '');
+        });
+
+        const fallback = normalized[DEFAULT_LOCALE] || normalized.en || '';
+        SUPPORTED_LOCALES.forEach((locale) => {
+            if (!normalized[locale]) {
+                normalized[locale] = fallback;
+            }
+        });
+        return normalized;
+    }
+
+    const normalizedString = sanitizer(typeof value === 'string' ? value : '');
+    return {
+        nl: normalizedString,
+        en: normalizedString
+    };
+}
+
+export function getLocalizedValue(value, locale = DEFAULT_LOCALE) {
+    const normalized = normalizeLocalizedValue(value);
+    return normalized[locale] || normalized[DEFAULT_LOCALE] || normalized.en || '';
+}
+
 export function createSection(overrides = {}) {
-    const navLabel = deriveSectionName(overrides);
+    const rawNavLabel = overrides.navLabel ?? overrides.title ?? 'New Section';
+    const navLabel = normalizeLocalizedValue(rawNavLabel, (input) => input.trim());
+    const title = normalizeLocalizedValue(overrides.title ?? navLabel, (input) => input.trim());
+    const bodyHtml = normalizeLocalizedValue(
+        overrides.bodyHtml || '<p>Add your section content here.</p>',
+        sanitizeRichHtml
+    );
     const specialType = typeof overrides.specialType === 'string'
         ? overrides.specialType.trim().toLowerCase()
         : (overrides.id === 'contact' ? 'contact' : '');
 
     return {
-        id: deriveSectionId({ navLabel }),
+        id: deriveSectionId({ navLabel: getLocalizedValue(navLabel, DEFAULT_LOCALE) }),
         navLabel,
         navUseDots: SECTION_MENU_USES_DOTS,
-        title: navLabel,
+        title,
         titleUseDots: SECTION_TITLE_USES_DOTS,
-        bodyHtml: sanitizeRichHtml(overrides.bodyHtml || '<p>Add your section content here.</p>'),
+        bodyHtml,
         specialType: specialType || null,
         isSplit: Boolean(overrides.isSplit),
         splitLayout: overrides.splitLayout === 'text-right' ? 'text-right' : 'text-left',
@@ -133,7 +170,10 @@ function convertLegacySections(legacySections = {}, legacyNavigation = {}) {
 
 export const DEFAULT_SITE_CONTENT = {
     hero: {
-        subtitleHtml: '<p>Empowering Queer Art</p>'
+        subtitleHtml: {
+            nl: '<p>Empowering Queer Art</p>',
+            en: '<p>Empowering Queer Art</p>'
+        }
     },
     sections: convertLegacySections(),
     dotPalette: [...DEFAULT_DOT_PALETTE],
@@ -151,9 +191,10 @@ export function normalizeSiteContent(data = {}) {
 
     return {
         hero: {
-            subtitleHtml: sanitizeRichHtml(
+            subtitleHtml: normalizeLocalizedValue(
                 data.hero?.subtitleHtml
-                || (data.hero?.subtitle ? `<p>${escapeHtml(data.hero.subtitle)}</p>` : DEFAULT_SITE_CONTENT.hero.subtitleHtml)
+                || (data.hero?.subtitle ? `<p>${escapeHtml(data.hero.subtitle)}</p>` : DEFAULT_SITE_CONTENT.hero.subtitleHtml),
+                sanitizeRichHtml
             )
         },
         sections: sections.length > 0 ? sections : DEFAULT_SITE_CONTENT.sections.map((section) => createSection(section)),

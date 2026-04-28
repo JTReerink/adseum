@@ -95,6 +95,40 @@ a {
     pointer-events: auto;
 }
 
+.locale-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    margin-left: auto;
+    margin-right: 1rem;
+    padding: 0.2rem;
+    border: 1px solid rgba(17, 24, 39, 0.1);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.locale-switch-button {
+    min-width: 2.5rem;
+    border: 0;
+    border-radius: 999px;
+    padding: 0.35rem 0.6rem;
+    background: transparent;
+    color: #4b5563;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.locale-switch-button.is-active {
+    background: #111827;
+    color: #ffffff;
+}
+
 #nav-links {
     display: flex;
     align-items: center;
@@ -107,7 +141,8 @@ a {
 }
 
 body:not(.intro-complete) #nav-links,
-body:not(.intro-complete) .nav-hamburger {
+body:not(.intro-complete) .nav-hamburger,
+body:not(.intro-complete) .locale-switch {
     opacity: 0;
     pointer-events: none;
 }
@@ -952,6 +987,10 @@ body.admin-pending #admin-app {
 
     #nav-links {
         display: none;
+    }
+
+    .locale-switch {
+        margin-right: 0.75rem;
     }
 
     .nav-hamburger {
