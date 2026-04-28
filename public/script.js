@@ -1,8 +1,9 @@
 import { renderText } from './modules/renderer.js';
 import { animateDots, initAnimations, initScrollAnimations, initNavScrollAnimation, initDotReverseAnimation } from './modules/animations.js';
 import {
+    DEFAULT_LOCALE,
     DEFAULT_SITE_CONTENT,
-    isContactSection,
+    getLocalizedValue,
     listenToLetters,
     listenToSiteContent,
     sanitizeRichHtml,
@@ -32,9 +33,12 @@ const mobileMenu = document.getElementById('mobile-menu');
 const mobileNavLinks = document.getElementById('mobile-nav-links');
 const sectionsRoot = document.getElementById('sections-root');
 const heroSubtitle = document.getElementById('hero-subtitle-content');
+const localeSwitchButtons = Array.from(document.querySelectorAll('[data-locale-switch]'));
 let mobileMenuOpen = false;
+let currentLocale = localStorage.getItem('adseum-locale') === 'en' ? 'en' : DEFAULT_LOCALE;
 
 const getSiteContent = () => window.siteContent || DEFAULT_SITE_CONTENT;
+const getLocalizedText = (value, locale = currentLocale) => getLocalizedValue(value, locale);
 
 function decorateSplitGraphicDots(container) {
     if (!container) return;
@@ -92,6 +96,7 @@ function buildNavigation(sections) {
     mobileNavLinks.innerHTML = '';
 
     sections.forEach((section) => {
+        const localizedLabel = getLocalizedText(section.navLabel);
         const item = document.createElement('li');
         const link = document.createElement('a');
         link.href = `#${section.id}`;
@@ -101,12 +106,12 @@ function buildNavigation(sections) {
             const dotLabel = document.createElement('span');
             dotLabel.id = `nav-label-${section.id}`;
             dotLabel.className = 'nav-dot-label nav-text-label';
-            dotLabel.textContent = section.navLabel;
+            dotLabel.textContent = localizedLabel;
             link.appendChild(dotLabel);
         } else {
             const textLabel = document.createElement('span');
             textLabel.className = 'nav-text-label';
-            textLabel.textContent = section.navLabel;
+            textLabel.textContent = localizedLabel;
             link.appendChild(textLabel);
         }
 
@@ -117,47 +122,22 @@ function buildNavigation(sections) {
         const mobileLink = document.createElement('a');
         mobileLink.href = `#${section.id}`;
         mobileLink.className = 'mobile-menu-link';
-        mobileLink.textContent = section.navLabel;
+        mobileLink.textContent = localizedLabel;
         mobileItem.appendChild(mobileLink);
         mobileNavLinks.appendChild(mobileItem);
     });
-}
-
-function buildContactEmail(container) {
-    const content = getSiteContent();
-    const email = content.contactEmail;
-    if (!email || !email.includes('@')) return;
-
-    const atIndex = email.indexOf('@');
-    const user = email.substring(0, atIndex);
-    const domain = email.substring(atIndex + 1);
-
-    const wrapper = document.createElement('div');
-    wrapper.className = 'contact-email-wrapper';
-
-    if (content.contactSubtext) {
-        const subtext = document.createElement('p');
-        subtext.className = 'contact-subtext';
-        subtext.textContent = content.contactSubtext;
-        wrapper.appendChild(subtext);
-    }
-
-    const link = document.createElement('a');
-    link.href = 'mailto:' + user + '@' + domain;
-    link.className = 'contact-email-link';
-    link.textContent = user + '@' + domain;
-    wrapper.appendChild(link);
-
-    container.appendChild(wrapper);
 }
 
 function buildSections(sections) {
     sectionsRoot.innerHTML = '';
 
     sections.forEach((section, index) => {
+        const localizedTitle = getLocalizedText(section.title);
+        const localizedBodyHtml = getLocalizedText(section.bodyHtml);
         const sectionElement = document.createElement('section');
         sectionElement.id = section.id;
         const isLast = index === sections.length - 1;
+        const isSplitRight = section.isSplit && section.splitLayout === 'text-right';
         sectionElement.className = [
             'cms-section',
             'w-full',
@@ -198,7 +178,7 @@ function buildSections(sections) {
 
         const heading = document.createElement('div');
         heading.className = section.isSplit
-            ? 'w-full max-w-6xl flex flex-wrap justify-start gap-4'
+            ? `w-full max-w-6xl flex flex-wrap gap-4 ${isSplitRight ? 'justify-end' : 'justify-start'}`
             : 'w-full flex flex-wrap mb-12 justify-center gap-y-8';
         if (section.isSplit) heading.style.marginBottom = '2.5rem';
 
@@ -206,33 +186,34 @@ function buildSections(sections) {
             const dotHeading = document.createElement('div');
             dotHeading.id = `section-title-${section.id}`;
             dotHeading.className = 'cms-dot-heading';
+            if (isSplitRight) dotHeading.style.justifyContent = 'flex-end';
             const fallbackHeading = document.createElement('h2');
-            fallbackHeading.className = `dot-fallback-heading ${section.isSplit ? 'text-left' : 'text-center'}`;
-            fallbackHeading.textContent = section.title;
+            fallbackHeading.className = `dot-fallback-heading ${section.isSplit ? (isSplitRight ? 'text-right' : 'text-left') : 'text-center'}`;
+            fallbackHeading.textContent = localizedTitle;
             dotHeading.appendChild(fallbackHeading);
             heading.appendChild(dotHeading);
         } else {
             const plainHeading = document.createElement('h2');
-            plainHeading.className = `dot-fallback-heading ${section.isSplit ? 'text-left' : 'text-center'}`;
-            plainHeading.textContent = section.title;
+            plainHeading.className = `dot-fallback-heading ${section.isSplit ? (isSplitRight ? 'text-right' : 'text-left') : 'text-center'}`;
+            plainHeading.textContent = localizedTitle;
             heading.appendChild(plainHeading);
         }
 
         const body = document.createElement('div');
-        body.className = `cms-section-body rich-content ${section.isSplit ? 'max-w-none text-left' : 'max-w-2xl mx-auto text-center'} text-lg md:text-xl leading-relaxed font-medium`;
+        body.className = `cms-section-body rich-content ${section.isSplit ? `max-w-none ${isSplitRight ? 'text-right' : 'text-left'}` : 'max-w-2xl mx-auto text-center'} text-lg md:text-xl leading-relaxed font-medium`;
         
         // Force the text to be pure black to prevent optical color blending from the background
         body.style.color = '#111111';
 
-        setRichContent(body, section.bodyHtml);
+        setRichContent(body, localizedBodyHtml);
 
         const contentColumn = document.createElement('div');
-        contentColumn.className = section.isSplit ? 'space-y-8' : '';
+        contentColumn.className = section.isSplit ? `space-y-8 ${isSplitRight ? 'lg:order-2' : 'lg:order-1'}` : '';
 
         if (section.isSplit) {
             contentColumn.appendChild(body);
             const graphicColumn = document.createElement('div');
-            graphicColumn.className = 'cms-section-graphic flex justify-center items-center';
+            graphicColumn.className = `cms-section-graphic flex justify-center items-center ${isSplitRight ? 'lg:order-1' : 'lg:order-2'}`;
             
             // On mobile, the graphic bleeds out of its bounding box due to the 1.5 visualScale.
             // We add a top margin to explicitly push it away from the text block.
@@ -243,7 +224,7 @@ function buildSections(sections) {
             if (section.graphicType === 'image' && section.graphicUrl) {
                 const img = document.createElement('img');
                 img.src = section.graphicUrl;
-                img.alt = section.title;
+                img.alt = localizedTitle;
                 img.className = 'w-full h-auto rounded-3xl border border-gray-200 shadow-sm';
                 graphicColumn.appendChild(img);
             } else if (section.graphicType === 'dot' && section.graphicName && window.letters && window.letters[section.graphicName]) {
@@ -262,16 +243,17 @@ function buildSections(sections) {
             }
 
             sectionElement.appendChild(heading);
-            inner.appendChild(contentColumn);
-            inner.appendChild(graphicColumn);
+            if (isSplitRight) {
+                inner.appendChild(graphicColumn);
+                inner.appendChild(contentColumn);
+            } else {
+                inner.appendChild(contentColumn);
+                inner.appendChild(graphicColumn);
+            }
         } else {
             contentColumn.appendChild(heading);
             contentColumn.appendChild(body);
             inner.appendChild(contentColumn);
-        }
-
-        if (isContactSection(section)) {
-            buildContactEmail(inner);
         }
 
         sectionElement.appendChild(inner);
@@ -281,7 +263,7 @@ function buildSections(sections) {
 
 function renderStaticContent() {
     const content = getSiteContent();
-    setRichContent(heroSubtitle, content.hero.subtitleHtml);
+    setRichContent(heroSubtitle, getLocalizedText(content.hero.subtitleHtml));
     buildNavigation(content.sections);
     buildSections(content.sections);
 }
@@ -309,7 +291,7 @@ function renderDynamicDotContent() {
         if (section.navUseDots) {
             renderDotField(
                 document.getElementById(`nav-label-${section.id}`),
-                section.navLabel,
+                getLocalizedText(section.navLabel),
                 { dotSize: 4, monochrome: true, letterSpacing: 4, gap: 1.5, visualScale: 1.3 },
                 'span',
                 'nav-text-label'
@@ -319,10 +301,10 @@ function renderDynamicDotContent() {
         if (section.titleUseDots) {
             renderDotField(
                 document.getElementById(`section-title-${section.id}`),
-                section.title,
+                getLocalizedText(section.title),
                 { dotSize: 8, monochrome: true, visualScale: 1.3 },
                 'h2',
-                `dot-fallback-heading ${section.isSplit ? 'text-left' : 'text-center'}`
+                `dot-fallback-heading ${section.isSplit ? (section.splitLayout === 'text-right' ? 'text-right' : 'text-left') : 'text-center'}`
             );
         }
 
@@ -334,6 +316,74 @@ function renderDynamicDotContent() {
             }
         }
     });
+}
+
+function syncLocaleSwitchUi() {
+    localeSwitchButtons.forEach((button) => {
+        const isActive = button.dataset.localeSwitch === currentLocale;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
+    });
+}
+
+function renderLocalizedDynamicContent() {
+    const content = getSiteContent();
+
+    content.sections.forEach((section) => {
+        if (section.navUseDots) {
+            renderDotField(
+                document.getElementById(`nav-label-${section.id}`),
+                getLocalizedText(section.navLabel),
+                { dotSize: 4, monochrome: true, letterSpacing: 4, gap: 1.5, visualScale: 1.3 },
+                'span',
+                'nav-text-label'
+            );
+        }
+
+        if (section.titleUseDots) {
+            renderDotField(
+                document.getElementById(`section-title-${section.id}`),
+                getLocalizedText(section.title),
+                { dotSize: 8, monochrome: true, visualScale: 1.3 },
+                'h2',
+                `dot-fallback-heading ${section.isSplit ? (section.splitLayout === 'text-right' ? 'text-right' : 'text-left') : 'text-center'}`
+            );
+        }
+
+        if (section.isSplit && section.graphicType === 'dot') {
+            const graphicWrapper = document.getElementById(`section-graphic-${section.id}`);
+            if (graphicWrapper && section.graphicName) {
+                graphicWrapper.innerHTML = '';
+                renderSplitGraphic(graphicWrapper.id, section.graphicName);
+            }
+        }
+    });
+}
+
+function rerenderLocalizedPage() {
+    renderStaticContent();
+
+    if (!lettersReady || !siteContentReady) {
+        return;
+    }
+
+    renderLocalizedDynamicContent();
+
+    if (window.ScrollTrigger) {
+        ScrollTrigger.getAll().forEach((trigger) => {
+            if (trigger.trigger?.id !== 'hero') {
+                trigger.kill();
+            }
+        });
+        initScrollAnimations();
+    }
+}
+
+function setLocale(locale) {
+    currentLocale = locale === 'en' ? 'en' : DEFAULT_LOCALE;
+    localStorage.setItem('adseum-locale', currentLocale);
+    syncLocaleSwitchUi();
+    rerenderLocalizedPage();
 }
 
 function handleRender() {
@@ -459,6 +509,9 @@ function initNavbar() {
     navLinks.addEventListener('click', handleNavClick);
     mobileNavLinks.addEventListener('click', handleNavClick);
     hamburgerButton.addEventListener('click', toggleMobileMenu);
+    localeSwitchButtons.forEach((button) => {
+        button.addEventListener('click', () => setLocale(button.dataset.localeSwitch));
+    });
 
     window.addEventListener('resize', () => {
         if (window.innerWidth >= 768 && mobileMenuOpen) {
@@ -482,6 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderStaticContent();
     initNavbar();
+    syncLocaleSwitchUi();
 
     listenToLetters(() => {
         lettersReady = true;

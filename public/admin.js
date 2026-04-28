@@ -6,15 +6,18 @@ import {
 } from './modules/admin-access.js';
 import { requireAuth } from './modules/auth-guard.js';
 import {
+    DEFAULT_LOCALE,
     DEFAULT_SITE_CONTENT,
     createSection,
     deriveSectionId,
     deriveSectionName,
     escapeHtml,
-    isContactSection,
+    getLocalizedValue,
     listenToLetters,
     loadSiteContent,
+    normalizeLocalizedValue,
     sanitizeRichHtml,
+    SUPPORTED_LOCALES,
     validateDotText
 } from './modules/database.js';
 import {
@@ -41,7 +44,9 @@ const authStatus = document.getElementById('auth-status');
 const deniedMessage = document.getElementById('denied-message');
 const signOutButton = document.getElementById('sign-out-button');
 const deniedSignOut = document.getElementById('denied-sign-out');
-const heroSubtitleEditor = document.getElementById('hero-subtitle-editor');
+const heroSubtitleEditors = Object.fromEntries(
+    SUPPORTED_LOCALES.map((locale) => [locale, document.getElementById(`hero-subtitle-editor-${locale}`)])
+);
 const addSectionButton = document.getElementById('add-section-button');
 const collapseAllButton = document.getElementById('collapse-all-button');
 const sectionsList = document.getElementById('sections-list');
@@ -69,18 +74,58 @@ let collapsedSections = new Set();
 /* ── Helpers ── */
 function normalizeEmail(email = '') { return email.trim().toLowerCase(); }
 function getSectionDisplayName(section = {}) { return deriveSectionName(section); }
+function getLocalizedAdminValue(value, locale = DEFAULT_LOCALE) { return getLocalizedValue(value, locale); }
 
 function showToast(message, type = '') {
-    toastEl.textContent = message;
+    toastEl.innerHTML = '';
+    const msgSpan = document.createElement('span');
+    msgSpan.textContent = message;
+    toastEl.appendChild(msgSpan);
+
+    if (type === 'error') {
+        const closeBtn = document.createElement('button');
+        closeBtn.setAttribute('aria-label', 'Dismiss');
+        closeBtn.textContent = '✕';
+        closeBtn.className = 'cms-toast-close';
+        closeBtn.addEventListener('click', () => {
+            clearTimeout(toastEl._timer);
+            toastEl.classList.remove('visible');
+        });
+        toastEl.appendChild(closeBtn);
+    }
+
     toastEl.className = 'cms-toast visible' + (type ? ` toast-${type}` : '');
     clearTimeout(toastEl._timer);
-    toastEl._timer = setTimeout(() => { toastEl.classList.remove('visible'); }, 4000);
+    toastEl._timer = setTimeout(() => { toastEl.classList.remove('visible'); }, type === 'error' ? 9000 : 4000);
 }
 
 function setNotice(element, message, isError = false) {
-    element.textContent = message;
+    if (isError) {
+        element.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:-1px;margin-right:5px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' + escapeHtml(message);
+    } else {
+        element.textContent = message;
+    }
     element.classList.remove('text-red-600', 'text-slate-500', 'text-slate-600', 'text-emerald-600', 'text-gray-500');
     element.classList.add(isError ? 'text-red-600' : 'text-emerald-600');
+}
+
+function getFirebaseErrorMessage(error) {
+    const code = (error?.code || '').replace('firestore/', '').replace('auth/', '');
+    const messages = {
+        'permission-denied':  'Je hebt geen toestemming om op te slaan. Je sessie is mogelijk verlopen — probeer uit te loggen en opnieuw in te loggen.',
+        'unauthenticated':    'Je bent niet meer ingelogd. Log opnieuw in.',
+        'unavailable':        'De server is tijdelijk onbereikbaar. Controleer je internetverbinding.',
+        'deadline-exceeded':  'Het verzoek duurde te lang. Probeer het opnieuw.',
+        'quota-exceeded':     'Opslagquotum overschreden. Neem contact op met de ontwikkelaar.',
+        'resource-exhausted': 'Te veel verzoeken tegelijk. Wacht even en probeer opnieuw.',
+        'not-found':          'Het document kon niet worden gevonden.',
+        'internal':           'Er is een interne serverfout opgetreden. Probeer het later opnieuw.',
+        'network-request-failed': 'Kan de server niet bereiken. Controleer je internetverbinding.',
+        'cancelled':          'De bewerking is geannuleerd.',
+    };
+    if (messages[code]) return messages[code];
+    if (code) return `Er is iets misgegaan (${code}). Probeer opnieuw of neem contact op met de ontwikkelaar.`;
+    return 'Er is een onverwachte fout opgetreden. Probeer het opnieuw.';
 }
 
 function showShell(view) {
@@ -98,11 +143,14 @@ function refreshPreview() {
 /* ── Validation ── */
 function getInlineValidation(section, index) {
     const issues = [];
-    const sectionName = (section.navLabel || '').trim();
+    const localizedNavLabel = normalizeLocalizedValue(section.navLabel, (input) => input.trim());
+    const sectionName = localizedNavLabel.nl;
 
-    if (!sectionName.trim()) {
-        issues.push({ field: 'navLabel', message: 'Give this section a menu name so visitors can find it.' });
-    }
+    SUPPORTED_LOCALES.forEach((locale) => {
+        if (!localizedNavLabel[locale].trim()) {
+            issues.push({ field: `navLabel.${locale}`, message: `Add a ${locale === 'nl' ? 'Dutch' : 'English'} menu name for this section.` });
+        }
+    });
 
     const id = deriveSectionId(section);
     const otherIds = siteContent.sections
@@ -114,22 +162,26 @@ function getInlineValidation(section, index) {
 
     if (lettersReady) {
         if (SECTION_MENU_USES_DOTS) {
-            const missing = validateDotText(sectionName, lettersMap);
-            if (missing.length > 0) {
-                issues.push({
-                    field: 'navLabel',
-                    message: `The characters ${missing.join(', ')} haven't been designed yet. Open the Letter Designer to create them before publishing.`
-                });
-            }
+            SUPPORTED_LOCALES.forEach((locale) => {
+                const missing = validateDotText(localizedNavLabel[locale], lettersMap);
+                if (missing.length > 0) {
+                    issues.push({
+                        field: `navLabel.${locale}`,
+                        message: `The ${locale === 'nl' ? 'Dutch' : 'English'} menu name uses ${missing.join(', ')} which haven't been designed yet.`
+                    });
+                }
+            });
         }
         if (SECTION_TITLE_USES_DOTS) {
-            const missing = validateDotText(sectionName, lettersMap);
-            if (missing.length > 0) {
-                issues.push({
-                    field: 'navLabel',
-                    message: `The characters ${missing.join(', ')} haven't been designed yet. Open the Letter Designer to create them before publishing.`
-                });
-            }
+            SUPPORTED_LOCALES.forEach((locale) => {
+                const missing = validateDotText(localizedNavLabel[locale], lettersMap);
+                if (missing.length > 0) {
+                    issues.push({
+                        field: `title.${locale}`,
+                        message: `The ${locale === 'nl' ? 'Dutch' : 'English'} heading uses ${missing.join(', ')} which haven't been designed yet.`
+                    });
+                }
+            });
         }
 
         if (section.isSplit) {
@@ -167,6 +219,11 @@ function renderInlineValidation(card, index) {
     if (!section) return;
 
     const issues = getInlineValidation(section, index);
+
+    // Red badge on the section number when there are errors (visible even when collapsed)
+    const numberBadge = card.querySelector('.section-number');
+    if (numberBadge) numberBadge.classList.toggle('has-error', issues.length > 0);
+
     const existingHints = card.querySelectorAll('.cms-inline-error, .cms-inline-success, .glyph-status');
     existingHints.forEach(el => el.remove());
 
@@ -248,11 +305,18 @@ function renderSections() {
 
             <div class="cms-section-card-body" style="${isCollapsed ? 'max-height:0;opacity:0;padding-top:0;padding-bottom:0;' : ''}">
                 <div class="mb-4">
-                    <label class="block">
-                        <span class="cms-field-label">Menu name</span>
-                        <input type="text" class="cms-input" value="${escapeHtml(section.navLabel || '')}" data-section-field="navLabel">
-                        <p class="cms-field-help">This one name is used for the menu label, the section heading, and the URL anchor.</p>
-                    </label>
+                    <span class="cms-field-label">Menu name / section heading</span>
+                    <p class="cms-field-help mb-3">These names are used for the menu label, the section heading, and the URL anchor. The Dutch name determines the anchor slug.</p>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <label class="block">
+                            <span class="cms-field-label">Nederlands</span>
+                            <input type="text" class="cms-input" value="${escapeHtml(getLocalizedAdminValue(section.navLabel, 'nl'))}" data-section-field="navLabel" data-locale="nl">
+                        </label>
+                        <label class="block">
+                            <span class="cms-field-label">English</span>
+                            <input type="text" class="cms-input" value="${escapeHtml(getLocalizedAdminValue(section.navLabel, 'en'))}" data-section-field="navLabel" data-locale="en">
+                        </label>
+                    </div>
                     <div data-validation-target="autoFields" class="mt-2"></div>
                 </div>
 
@@ -267,6 +331,20 @@ function renderSections() {
 
                     ${section.isSplit ? `
                     <div class="space-y-4 p-4 bg-blue-50 rounded-lg">
+                        <div>
+                            <p class="cms-field-label mb-2">Layout direction</p>
+                            <div class="flex gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="split-layout-${index}" value="text-left" ${section.splitLayout !== 'text-right' ? 'checked' : ''} data-section-field="splitLayout">
+                                    <span class="text-sm font-medium">Text left, graphic right</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="split-layout-${index}" value="text-right" ${section.splitLayout === 'text-right' ? 'checked' : ''} data-section-field="splitLayout">
+                                    <span class="text-sm font-medium">Graphic left, text right</span>
+                                </label>
+                            </div>
+                        </div>
+
                         <div>
                             <p class="cms-field-label mb-2">Graphic type</p>
                             <div class="flex gap-4">
@@ -318,41 +396,42 @@ function renderSections() {
 
                 <div class="mt-4 pt-4 border-t border-gray-100">
                     <p class="cms-field-label">Section content</p>
-                    <p class="cms-field-help mb-2">Write the text visitors will see in this section. Use the toolbar to format.</p>
+                    <p class="cms-field-help mb-2">Fill in both languages clearly here. The visitor can switch between Dutch and English on the live site.</p>
                     <div class="rich-editor-wrap">
-                        <div class="editor-toolbar" data-editor-toolbar data-target="section-body-editor-${index}">
-                            <button type="button" data-editor-command="bold">Bold</button>
-                            <button type="button" data-editor-command="italic">Italic</button>
-                            <button type="button" data-editor-command="underline">Underline</button>
-                            <button type="button" data-editor-block="h2">H2</button>
-                            <button type="button" data-editor-block="h3">H3</button>
-                            <button type="button" data-editor-command="insertUnorderedList">Bullets</button>
-                            <button type="button" data-editor-command="insertOrderedList">Numbers</button>
-                            <button type="button" data-editor-block="blockquote">Quote</button>
-                            <button type="button" data-editor-action="link">Link</button>
-                            <button type="button" data-editor-action="clear">Clear</button>
+                        <div class="p-4 space-y-4">
+                            <div>
+                                <p class="cms-field-label">Nederlands</p>
+                                <div class="editor-toolbar" data-editor-toolbar data-target="section-body-editor-${index}-nl">
+                                    <button type="button" data-editor-command="bold">Bold</button>
+                                    <button type="button" data-editor-command="italic">Italic</button>
+                                    <button type="button" data-editor-command="underline">Underline</button>
+                                    <button type="button" data-editor-block="h2">H2</button>
+                                    <button type="button" data-editor-block="h3">H3</button>
+                                    <button type="button" data-editor-block="blockquote">Quote</button>
+                                    <button type="button" data-editor-action="link">Link</button>
+                                    <button type="button" data-editor-action="clear">Clear</button>
+                                </div>
+                                <div id="section-body-editor-${index}-nl" class="rich-editor-surface rich-content" contenteditable="true"
+                                    data-section-rich-field="bodyHtml" data-locale="nl" data-placeholder="Schrijf hier de Nederlandse sectietekst...">${sanitizeRichHtml(getLocalizedAdminValue(section.bodyHtml, 'nl'))}</div>
+                            </div>
+                            <div>
+                                <p class="cms-field-label">English</p>
+                                <div class="editor-toolbar" data-editor-toolbar data-target="section-body-editor-${index}-en">
+                                    <button type="button" data-editor-command="bold">Bold</button>
+                                    <button type="button" data-editor-command="italic">Italic</button>
+                                    <button type="button" data-editor-command="underline">Underline</button>
+                                    <button type="button" data-editor-block="h2">H2</button>
+                                    <button type="button" data-editor-block="h3">H3</button>
+                                    <button type="button" data-editor-block="blockquote">Quote</button>
+                                    <button type="button" data-editor-action="link">Link</button>
+                                    <button type="button" data-editor-action="clear">Clear</button>
+                                </div>
+                                <div id="section-body-editor-${index}-en" class="rich-editor-surface rich-content" contenteditable="true"
+                                    data-section-rich-field="bodyHtml" data-locale="en" data-placeholder="Write the English section content here...">${sanitizeRichHtml(getLocalizedAdminValue(section.bodyHtml, 'en'))}</div>
+                            </div>
                         </div>
-                        <div id="section-body-editor-${index}" class="rich-editor-surface rich-content" contenteditable="true"
-                            data-section-rich-field="bodyHtml" data-placeholder="Write your section content here...">${sanitizeRichHtml(section.bodyHtml)}</div>
                     </div>
                 </div>
-
-                ${isContactSection(section) ? `
-                <div class="mt-4 pt-4 border-t border-gray-100">
-                    <p class="cms-field-label mb-1">Contact email</p>
-                    <p class="cms-field-help mb-3">The email shown below the section content as a clickable mailto link. Protected from spam bots.</p>
-                    <div class="grid gap-4 md:grid-cols-2">
-                        <label class="block">
-                            <span class="cms-field-label">Display email</span>
-                            <input type="email" class="cms-input" value="${escapeHtml(siteContent.contactEmail || '')}" data-contact-field="contactEmail" placeholder="info@adseum.nl">
-                        </label>
-                        <label class="block">
-                            <span class="cms-field-label">Contact subtext</span>
-                            <input type="text" class="cms-input" value="${escapeHtml(siteContent.contactSubtext || '')}" data-contact-field="contactSubtext" placeholder="Reach out to collaborate with us.">
-                        </label>
-                    </div>
-                </div>
-                ` : ''}
             </div>
         </article>
     `}).join('');
@@ -362,17 +441,24 @@ function renderSections() {
 
 /* ── Sync editors ── */
 function syncHeroEditor() {
-    siteContent.hero.subtitleHtml = sanitizeRichHtml(heroSubtitleEditor.innerHTML);
+    const current = normalizeLocalizedValue(siteContent.hero.subtitleHtml, sanitizeRichHtml);
+    SUPPORTED_LOCALES.forEach((locale) => {
+        current[locale] = sanitizeRichHtml(heroSubtitleEditors[locale]?.innerHTML || '');
+    });
+    siteContent.hero.subtitleHtml = current;
 }
 
 function syncSectionRichEditor(surface) {
     const card = surface.closest('[data-section-index]');
     if (!card) return;
     const index = Number(card.dataset.sectionIndex);
-    siteContent.sections[index].bodyHtml = sanitizeRichHtml(surface.innerHTML);
+    const locale = surface.dataset.locale || DEFAULT_LOCALE;
+    const current = normalizeLocalizedValue(siteContent.sections[index].bodyHtml, sanitizeRichHtml);
+    current[locale] = sanitizeRichHtml(surface.innerHTML);
+    siteContent.sections[index].bodyHtml = current;
 }
 
-function updateSectionField(index, field, value) {
+function updateSectionField(index, field, value, locale = null) {
     if (!siteContent.sections[index]) return;
 
     if (field === 'isSplit') {
@@ -383,16 +469,26 @@ function updateSectionField(index, field, value) {
         // Re-render the entire section when split mode changes
         renderSections();
         return;
+    } else if (field === 'splitLayout') {
+        siteContent.sections[index][field] = value === 'text-right' ? 'text-right' : 'text-left';
+        renderSections();
+        return;
     } else if (field === 'graphicType') {
         siteContent.sections[index][field] = value || null;
         // Re-render the entire section when graphic type changes
         renderSections();
         return;
     } else {
-        siteContent.sections[index][field] = value;
+        if (locale && ['navLabel', 'title'].includes(field)) {
+            const current = normalizeLocalizedValue(siteContent.sections[index][field], (input) => input.trim());
+            current[locale] = String(value || '').trim();
+            siteContent.sections[index][field] = current;
+        } else {
+            siteContent.sections[index][field] = value;
+        }
         if (field === 'navLabel') {
-            siteContent.sections[index].title = value.trim();
-            siteContent.sections[index].id = deriveSectionId({ navLabel: value });
+            siteContent.sections[index].title = normalizeLocalizedValue(siteContent.sections[index].navLabel, (input) => input.trim());
+            siteContent.sections[index].id = deriveSectionId({ navLabel: getLocalizedAdminValue(siteContent.sections[index].navLabel, 'nl') });
         }
     }
 
@@ -444,7 +540,7 @@ function applyEditorCommand(button) {
         document.execCommand(button.dataset.editorCommand, false, button.dataset.editorValue || null);
     }
 
-    if (surface === heroSubtitleEditor) syncHeroEditor();
+    if (Object.values(heroSubtitleEditors).includes(surface)) syncHeroEditor();
     else syncSectionRichEditor(surface);
 }
 
@@ -489,7 +585,7 @@ function renderEditors(entries) {
                 await loadEditors();
             } catch (error) {
                 console.error('Error removing editor:', error);
-                showToast('Could not remove that person right now.', 'error');
+                showToast(getFirebaseErrorMessage(error), 'error');
             }
         });
 
@@ -550,17 +646,32 @@ saveContentButton.addEventListener('click', async () => {
 
     const validationErrors = getValidationSnapshot();
     if (validationErrors.length > 0) {
-        setNotice(contentNotice, validationErrors[0], true);
-        showToast('Please fix the issues above before publishing.', 'error');
+        const total = validationErrors.length;
+        const extra = total - 1;
+        const summary = extra > 0
+            ? `${validationErrors[0]} (+${extra} meer ${extra === 1 ? 'probleem' : 'problemen'})`
+            : validationErrors[0];
+        setNotice(contentNotice, summary, true);
+        showToast(
+            total === 1 ? 'Los 1 probleem op voor je publiceert.' : `Los ${total} problemen op voor je publiceert.`,
+            'error'
+        );
 
-        // Expand the first section with errors
+        // Expand sections with errors and scroll to the first one
+        let firstErrorCard = null;
         siteContent.sections.forEach((section, index) => {
             const issues = getInlineValidation(section, index);
-            if (issues.length > 0 && collapsedSections.has(index)) {
+            if (issues.length > 0) {
                 collapsedSections.delete(index);
+                if (!firstErrorCard) {
+                    firstErrorCard = sectionsList.querySelector(`[data-section-index="${index}"]`);
+                }
             }
         });
         renderSections();
+        if (firstErrorCard) {
+            requestAnimationFrame(() => firstErrorCard.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+        }
         return;
     }
 
@@ -568,16 +679,19 @@ saveContentButton.addEventListener('click', async () => {
     if (!confirmed) return;
 
     const payload = {
-        hero: { subtitleHtml: sanitizeRichHtml(siteContent.hero.subtitleHtml) },
+        hero: {
+            subtitleHtml: normalizeLocalizedValue(siteContent.hero.subtitleHtml, sanitizeRichHtml)
+        },
         sections: siteContent.sections.map((section) => ({
             id: deriveSectionId(section),
-            navLabel: getSectionDisplayName(section),
+            navLabel: normalizeLocalizedValue(section.navLabel, (input) => input.trim()),
             navUseDots: SECTION_MENU_USES_DOTS,
-            title: getSectionDisplayName(section),
+            title: normalizeLocalizedValue(section.title, (input) => input.trim()),
             titleUseDots: SECTION_TITLE_USES_DOTS,
-            bodyHtml: sanitizeRichHtml(section.bodyHtml),
+            bodyHtml: normalizeLocalizedValue(section.bodyHtml, sanitizeRichHtml),
             specialType: section.specialType || null,
             isSplit: Boolean(section.isSplit),
+            splitLayout: section.splitLayout === 'text-right' ? 'text-right' : 'text-left',
             graphicType: section.isSplit ? (section.graphicType || 'dot') : null,
             graphicName: section.isSplit ? (section.graphicName || '').trim() : '',
             graphicUrl: section.isSplit ? (section.graphicUrl || '').trim() : ''
@@ -585,8 +699,6 @@ saveContentButton.addEventListener('click', async () => {
         dotPalette: siteContent.dotPalette || DEFAULT_SITE_CONTENT.dotPalette,
         animationPause: Math.max(0, Math.min(10, parseFloat(siteContent.animationPause) || 1.5)),
         animationSpeed: Math.max(0.1, Math.min(5, parseFloat(siteContent.animationSpeed) || 1.0)),
-        contactEmail: (siteContent.contactEmail || '').trim(),
-        contactSubtext: (siteContent.contactSubtext || '').trim(),
         updatedAt: serverTimestamp(),
         updatedBy: currentAccess.email
     };
@@ -605,8 +717,9 @@ saveContentButton.addEventListener('click', async () => {
         setTimeout(refreshPreview, 1000);
     } catch (error) {
         console.error('Error saving homepage content:', error);
-        setNotice(contentNotice, 'Publishing failed. Please try again.', true);
-        showToast('Publishing failed. Check your connection and try again.', 'error');
+        const detail = getFirebaseErrorMessage(error);
+        setNotice(contentNotice, `Publiceren mislukt — ${detail}`, true);
+        showToast(detail, 'error');
     } finally {
         saveContentButton.disabled = false;
         saveContentButton.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Publish changes';
@@ -649,7 +762,7 @@ editorForm.addEventListener('submit', async (event) => {
         await loadEditors();
     } catch (error) {
         console.error('Error adding editor:', error);
-        showToast('Could not add that person right now.', 'error');
+        showToast(getFirebaseErrorMessage(error), 'error');
     }
 });
 
@@ -693,13 +806,13 @@ sectionsList.addEventListener('input', (event) => {
     if (!card) return;
     const index = Number(card.dataset.sectionIndex);
 
-    if (event.target.matches('[data-contact-field]')) {
-        siteContent[event.target.dataset.contactField] = event.target.value.trim();
-        return;
-    }
-
     if (event.target.matches('[data-section-field]')) {
-        updateSectionField(index, event.target.dataset.sectionField, event.target.type === 'checkbox' ? event.target.checked : event.target.value);
+        updateSectionField(
+            index,
+            event.target.dataset.sectionField,
+            event.target.type === 'checkbox' ? event.target.checked : event.target.value,
+            event.target.dataset.locale || null
+        );
         return;
     }
 
@@ -780,7 +893,9 @@ document.addEventListener('click', (event) => {
     applyEditorCommand(editorButton);
 });
 
-heroSubtitleEditor.addEventListener('input', syncHeroEditor);
+Object.values(heroSubtitleEditors).forEach((editor) => {
+    editor?.addEventListener('input', syncHeroEditor);
+});
 
 animationPauseInput.addEventListener('input', () => {
     siteContent.animationPause = parseFloat(animationPauseInput.value) || 1.5;
@@ -799,7 +914,11 @@ try {
     showToast('Could not load saved content. Showing defaults.', 'error');
 }
 
-heroSubtitleEditor.innerHTML = siteContent.hero.subtitleHtml;
+SUPPORTED_LOCALES.forEach((locale) => {
+    if (heroSubtitleEditors[locale]) {
+        heroSubtitleEditors[locale].innerHTML = getLocalizedAdminValue(siteContent.hero.subtitleHtml, locale);
+    }
+});
 animationPauseInput.value = siteContent.animationPause ?? 1.5;
 animationSpeedInput.value = siteContent.animationSpeed ?? 1.0;
 renderSections();

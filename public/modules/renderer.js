@@ -15,7 +15,9 @@ export const renderLetter = (char, grid, options = {}) => {
     const letterCol = document.createElement('div');
     letterCol.className = 'grid';
     letterCol.style.display = 'grid';
-    letterCol.style.gridTemplateColumns = `repeat(${grid[0].length}, 1fr)`;
+    letterCol.style.gridTemplateColumns = `repeat(${grid[0].length}, ${dotSize}px)`;
+    letterCol.style.gridAutoRows = `${dotSize}px`;
+    letterCol.style.alignContent = 'start'; // Never stretch rows beyond their natural dotSize height
     // Apply gap but ensure it can drop to sub-pixel values (don't floor it if we need tight packing)
     letterCol.style.gap = `${gap}px`;
 
@@ -142,6 +144,7 @@ export const renderText = (containerId, text, options = {}) => {
     rowContainer.style.display = 'flex';
     rowContainer.style.flexWrap = 'wrap';
     rowContainer.style.justifyContent = 'center';
+    rowContainer.style.alignItems = 'flex-end'; // Align letters at the bottom baseline, never stretch
     rowContainer.style.width = '100%';
     rowContainer.style.gap = `${letterGap}px`;
 

@@ -77,20 +77,38 @@
             </div>
 
             <div class="rich-editor-wrap">
-                <div class="editor-toolbar" data-editor-toolbar data-target="hero-subtitle-editor">
-                    <button type="button" data-editor-command="bold">Bold</button>
-                    <button type="button" data-editor-command="italic">Italic</button>
-                    <button type="button" data-editor-command="underline">Underline</button>
-                    <button type="button" data-editor-block="h2">H2</button>
-                    <button type="button" data-editor-block="h3">H3</button>
-                    <button type="button" data-editor-command="insertUnorderedList">Bullets</button>
-                    <button type="button" data-editor-command="insertOrderedList">Numbers</button>
-                    <button type="button" data-editor-block="blockquote">Quote</button>
-                    <button type="button" data-editor-action="link">Link</button>
-                    <button type="button" data-editor-action="clear">Clear</button>
+                <div class="p-4 space-y-4">
+                    <div>
+                        <p class="cms-field-label">Nederlands</p>
+                        <div class="editor-toolbar" data-editor-toolbar data-target="hero-subtitle-editor-nl">
+                            <button type="button" data-editor-command="bold">Bold</button>
+                            <button type="button" data-editor-command="italic">Italic</button>
+                            <button type="button" data-editor-command="underline">Underline</button>
+                            <button type="button" data-editor-block="h2">H2</button>
+                            <button type="button" data-editor-block="h3">H3</button>
+                            <button type="button" data-editor-block="blockquote">Quote</button>
+                            <button type="button" data-editor-action="link">Link</button>
+                            <button type="button" data-editor-action="clear">Clear</button>
+                        </div>
+                        <div id="hero-subtitle-editor-nl" class="rich-editor-surface rich-content" contenteditable="true"
+                            data-rich-field="hero.subtitleHtml" data-locale="nl" data-placeholder="Schrijf hier de Nederlandse tagline..."></div>
+                    </div>
+                    <div>
+                        <p class="cms-field-label">English</p>
+                        <div class="editor-toolbar" data-editor-toolbar data-target="hero-subtitle-editor-en">
+                            <button type="button" data-editor-command="bold">Bold</button>
+                            <button type="button" data-editor-command="italic">Italic</button>
+                            <button type="button" data-editor-command="underline">Underline</button>
+                            <button type="button" data-editor-block="h2">H2</button>
+                            <button type="button" data-editor-block="h3">H3</button>
+                            <button type="button" data-editor-block="blockquote">Quote</button>
+                            <button type="button" data-editor-action="link">Link</button>
+                            <button type="button" data-editor-action="clear">Clear</button>
+                        </div>
+                        <div id="hero-subtitle-editor-en" class="rich-editor-surface rich-content" contenteditable="true"
+                            data-rich-field="hero.subtitleHtml" data-locale="en" data-placeholder="Write the English tagline here..."></div>
+                    </div>
                 </div>
-                <div id="hero-subtitle-editor" class="rich-editor-surface rich-content" contenteditable="true"
-                    data-rich-field="hero.subtitleHtml" data-placeholder="Write a short tagline for your homepage..."></div>
             </div>
         </section>
 
