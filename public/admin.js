@@ -11,7 +11,6 @@ import {
     deriveSectionId,
     deriveSectionName,
     escapeHtml,
-    isContactSection,
     listenToLetters,
     loadSiteContent,
     sanitizeRichHtml,
@@ -268,6 +267,20 @@ function renderSections() {
                     ${section.isSplit ? `
                     <div class="space-y-4 p-4 bg-blue-50 rounded-lg">
                         <div>
+                            <p class="cms-field-label mb-2">Layout direction</p>
+                            <div class="flex gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="split-layout-${index}" value="text-left" ${section.splitLayout !== 'text-right' ? 'checked' : ''} data-section-field="splitLayout">
+                                    <span class="text-sm font-medium">Text left, graphic right</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="split-layout-${index}" value="text-right" ${section.splitLayout === 'text-right' ? 'checked' : ''} data-section-field="splitLayout">
+                                    <span class="text-sm font-medium">Graphic left, text right</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
                             <p class="cms-field-label mb-2">Graphic type</p>
                             <div class="flex gap-4">
                                 <label class="flex items-center gap-2 cursor-pointer">
@@ -326,8 +339,6 @@ function renderSections() {
                             <button type="button" data-editor-command="underline">Underline</button>
                             <button type="button" data-editor-block="h2">H2</button>
                             <button type="button" data-editor-block="h3">H3</button>
-                            <button type="button" data-editor-command="insertUnorderedList">Bullets</button>
-                            <button type="button" data-editor-command="insertOrderedList">Numbers</button>
                             <button type="button" data-editor-block="blockquote">Quote</button>
                             <button type="button" data-editor-action="link">Link</button>
                             <button type="button" data-editor-action="clear">Clear</button>
@@ -336,23 +347,6 @@ function renderSections() {
                             data-section-rich-field="bodyHtml" data-placeholder="Write your section content here...">${sanitizeRichHtml(section.bodyHtml)}</div>
                     </div>
                 </div>
-
-                ${isContactSection(section) ? `
-                <div class="mt-4 pt-4 border-t border-gray-100">
-                    <p class="cms-field-label mb-1">Contact email</p>
-                    <p class="cms-field-help mb-3">The email shown below the section content as a clickable mailto link. Protected from spam bots.</p>
-                    <div class="grid gap-4 md:grid-cols-2">
-                        <label class="block">
-                            <span class="cms-field-label">Display email</span>
-                            <input type="email" class="cms-input" value="${escapeHtml(siteContent.contactEmail || '')}" data-contact-field="contactEmail" placeholder="info@adseum.nl">
-                        </label>
-                        <label class="block">
-                            <span class="cms-field-label">Contact subtext</span>
-                            <input type="text" class="cms-input" value="${escapeHtml(siteContent.contactSubtext || '')}" data-contact-field="contactSubtext" placeholder="Reach out to collaborate with us.">
-                        </label>
-                    </div>
-                </div>
-                ` : ''}
             </div>
         </article>
     `}).join('');
@@ -381,6 +375,10 @@ function updateSectionField(index, field, value) {
             siteContent.sections[index].graphicType = 'dot';
         }
         // Re-render the entire section when split mode changes
+        renderSections();
+        return;
+    } else if (field === 'splitLayout') {
+        siteContent.sections[index][field] = value === 'text-right' ? 'text-right' : 'text-left';
         renderSections();
         return;
     } else if (field === 'graphicType') {
@@ -578,6 +576,7 @@ saveContentButton.addEventListener('click', async () => {
             bodyHtml: sanitizeRichHtml(section.bodyHtml),
             specialType: section.specialType || null,
             isSplit: Boolean(section.isSplit),
+            splitLayout: section.splitLayout === 'text-right' ? 'text-right' : 'text-left',
             graphicType: section.isSplit ? (section.graphicType || 'dot') : null,
             graphicName: section.isSplit ? (section.graphicName || '').trim() : '',
             graphicUrl: section.isSplit ? (section.graphicUrl || '').trim() : ''
@@ -585,8 +584,6 @@ saveContentButton.addEventListener('click', async () => {
         dotPalette: siteContent.dotPalette || DEFAULT_SITE_CONTENT.dotPalette,
         animationPause: Math.max(0, Math.min(10, parseFloat(siteContent.animationPause) || 1.5)),
         animationSpeed: Math.max(0.1, Math.min(5, parseFloat(siteContent.animationSpeed) || 1.0)),
-        contactEmail: (siteContent.contactEmail || '').trim(),
-        contactSubtext: (siteContent.contactSubtext || '').trim(),
         updatedAt: serverTimestamp(),
         updatedBy: currentAccess.email
     };
@@ -692,11 +689,6 @@ sectionsList.addEventListener('input', (event) => {
     const card = event.target.closest('[data-section-index]');
     if (!card) return;
     const index = Number(card.dataset.sectionIndex);
-
-    if (event.target.matches('[data-contact-field]')) {
-        siteContent[event.target.dataset.contactField] = event.target.value.trim();
-        return;
-    }
 
     if (event.target.matches('[data-section-field]')) {
         updateSectionField(index, event.target.dataset.sectionField, event.target.type === 'checkbox' ? event.target.checked : event.target.value);

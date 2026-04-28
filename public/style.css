@@ -87,14 +87,12 @@ a {
     flex-shrink: 0;
     opacity: 0;
     pointer-events: none;
-    transform: translateY(-8px);
-    transition: opacity 0.35s ease, transform 0.35s ease;
+    transition: opacity 0.35s ease;
 }
 
 #nav-logo.visible {
     opacity: 1;
     pointer-events: auto;
-    transform: translateY(0);
 }
 
 #nav-links {
@@ -259,6 +257,36 @@ body:not(.intro-complete) .subtitle-anim {
     width: 100%;
 }
 
+.cms-section-body.text-right,
+.cms-section-body.text-right .rich-content {
+    text-align: right;
+}
+
+.cms-section-body.text-right p,
+.cms-section-body.text-right h1,
+.cms-section-body.text-right h2,
+.cms-section-body.text-right h3,
+.cms-section-body.text-right h4,
+.cms-section-body.text-right blockquote,
+.cms-section-body.text-right ul,
+.cms-section-body.text-right ol {
+    margin-left: auto;
+    text-align: right;
+}
+
+.cms-section-body.text-right ul,
+.cms-section-body.text-right ol {
+    padding-left: 0;
+    padding-right: 1.3em;
+}
+
+.cms-section-body.text-right blockquote {
+    border-left: 0;
+    border-right: 3px solid rgba(17, 24, 39, 0.15);
+    padding-left: 0;
+    padding-right: 1rem;
+}
+
 .cms-dot-heading {
     width: 100%;
     display: flex;
@@ -271,39 +299,6 @@ body:not(.intro-complete) .subtitle-anim {
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #111;
-}
-
-/* =============================================
-   CONTACT EMAIL
-   ============================================= */
-
-.contact-email-wrapper {
-    margin-top: 2.5rem;
-    text-align: center;
-}
-
-.contact-subtext {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 1.125rem;
-    color: #6b7280;
-    margin-bottom: 1rem;
-}
-
-.contact-email-link {
-    display: inline-block;
-    font-family: 'DM Mono', 'Courier New', monospace;
-    font-size: clamp(1.25rem, 3vw, 1.75rem);
-    letter-spacing: 0.04em;
-    color: #1a1a1a;
-    text-decoration: none;
-    border-bottom: 2px solid #d1d5db;
-    padding-bottom: 0.15em;
-    transition: color 0.2s ease, border-color 0.2s ease;
-}
-
-.contact-email-link:hover {
-    color: #4b5563;
-    border-color: #1a1a1a;
 }
 
 /* =============================================
@@ -380,6 +375,7 @@ body:not(.intro-complete) .subtitle-anim {
 }
 
 .rich-content a {
+    font-family: inherit;
     color: #0f172a;
     text-decoration: underline;
     text-decoration-thickness: 1px;
@@ -479,6 +475,57 @@ body.admin-pending #admin-app {
     font-family: 'DM Mono', monospace;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
+}
+
+.editor-toolbar button[data-editor-command="bold"] {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.editor-toolbar button[data-editor-command="italic"] {
+    font-family: 'DM Sans', sans-serif;
+    font-style: italic;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.editor-toolbar button[data-editor-command="underline"] {
+    font-family: 'DM Sans', sans-serif;
+    text-decoration: underline;
+    text-underline-offset: 0.14em;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.editor-toolbar button[data-editor-block="h2"],
+.editor-toolbar button[data-editor-block="h3"] {
+    font-family: 'DIN Alternate', 'DM Sans', sans-serif;
+    letter-spacing: 0.04em;
+}
+
+.editor-toolbar button[data-editor-block="h2"] {
+    font-size: 0.9rem;
+}
+
+.editor-toolbar button[data-editor-block="h3"] {
+    font-size: 0.82rem;
+}
+
+.editor-toolbar button[data-editor-block="blockquote"] {
+    font-family: 'DM Sans', sans-serif;
+    font-style: italic;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.editor-toolbar button[data-editor-action="link"] {
+    font-family: 'DM Sans', sans-serif;
+    text-decoration: underline;
+    text-underline-offset: 0.14em;
+    text-transform: none;
+    letter-spacing: 0;
 }
 
 .editor-toolbar button:hover {

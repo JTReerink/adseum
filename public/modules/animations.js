@@ -283,7 +283,7 @@ export const initNavScrollAnimation = () => {
 
     // Reveal nav-logo dots; container stays hidden until hero exits viewport
     gsap.set('#nav-logo .dot-wrapper svg', { opacity: 1, scale: 1, x: 0, y: 0 });
-    navLogoEl.style.opacity = '0';
+    navLogoEl.classList.remove('visible');
 
     // Temporarily reset any CSS transforms on nav-logo to measure its true final resting position
     const previousTransform = navLogoEl.style.transform;
@@ -319,7 +319,7 @@ export const initNavScrollAnimation = () => {
         width: gridRect.width,
         height: gridRect.height,
         margin: 0,
-        zIndex: 51, // Above navbar so it appears to fly into position
+        zIndex: 101, // Keep the flying logo above the navbar while leaving the ink overlay behind it
         transformOrigin: 'center center',
     });
 
@@ -337,7 +337,6 @@ export const initNavScrollAnimation = () => {
             onLeave: () => {
                 // Logo has landed at nav corner — swap to nav logo instantly
                 navLogoEl.classList.add('visible');
-                navLogoEl.style.opacity = ''; // Clear inline style if present
                 gsap.set(logoGrid, { opacity: 0 });
             },
             onEnterBack: () => {
@@ -380,7 +379,7 @@ export const initDotReverseAnimation = () => {
     // Hidden until the intro animation finishes so clones don't appear during the ink-to-dots sequence.
     const overlayEl = document.createElement('div');
     overlayEl.setAttribute('data-dot-reverse', '');
-    overlayEl.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:49;overflow:visible;opacity:0;';
+    overlayEl.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:1;overflow:visible;opacity:0;';
     document.body.appendChild(overlayEl);
 
     // Pre-create clones off-screen; positions and tweens are set in revealOverlay once the
@@ -597,6 +596,40 @@ export const initAnimations = (containerSelector) => {
         window.fakeMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
         window.fakeMouseProgress = { x: 0.5, y: 0.5 };
         window.isRealMouseActive = false;
+        window.realMouseIdleUntil = 0;
+        window.fakeMouseTween = null;
+
+        const restartFakeMouseMotion = () => {
+            window.fakeMouseTween?.kill();
+            animateFakeMouse();
+        };
+
+        const syncRealMouseControl = () => {
+            const logoGrid = document.getElementById('logo-grid');
+            const wasRealMouseActive = window.isRealMouseActive;
+            let shouldUseRealMouse = false;
+
+            if (logoGrid) {
+                const rect = logoGrid.getBoundingClientRect();
+                const padding = WIGGLE_DIST;
+                const isMouseNearLogo =
+                    window.realMouse.x >= rect.left - padding &&
+                    window.realMouse.x <= rect.right + padding &&
+                    window.realMouse.y >= rect.top - padding &&
+                    window.realMouse.y <= rect.bottom + padding;
+
+                shouldUseRealMouse = isMouseNearLogo && Date.now() < window.realMouseIdleUntil;
+
+                if (wasRealMouseActive && !shouldUseRealMouse) {
+                    window.fakeMouseProgress.x = gsap.utils.clamp(0, 1, (window.realMouse.x - rect.left) / Math.max(1, rect.width));
+                    window.fakeMouseProgress.y = gsap.utils.clamp(0, 1, (window.realMouse.y - rect.top) / Math.max(1, rect.height));
+                    restartFakeMouseMotion();
+                }
+            }
+
+            window.isRealMouseActive = shouldUseRealMouse;
+            return { logoGrid, shouldUseRealMouse };
+        };
 
         const processWiggle = (dot, mouseX, mouseY) => {
             const rect = dot.getBoundingClientRect();
@@ -712,32 +745,14 @@ export const initAnimations = (containerSelector) => {
 
             window.realMouse.x = e.clientX;
             window.realMouse.y = e.clientY;
-
-            const logoGrid = document.getElementById('logo-grid');
-            let realMouseInLogo = false;
-
-            if (logoGrid) {
-                const rect = logoGrid.getBoundingClientRect();
-                const padding = WIGGLE_DIST; // Catch mouse slightly before entering
-                if (e.clientX >= rect.left - padding && e.clientX <= rect.right + padding &&
-                    e.clientY >= rect.top - padding && e.clientY <= rect.bottom + padding) {
-                    realMouseInLogo = true;
-                }
-            }
-
-            // If real mouse just left the logo, snap fake mouse to it for a seamless handoff
-            if (window.isRealMouseActive && !realMouseInLogo && logoGrid) {
-                const rect = logoGrid.getBoundingClientRect();
-                window.fakeMouseProgress.x = gsap.utils.clamp(0, 1, (e.clientX - rect.left) / Math.max(1, rect.width));
-                window.fakeMouseProgress.y = gsap.utils.clamp(0, 1, (e.clientY - rect.top) / Math.max(1, rect.height));
-            }
-            window.isRealMouseActive = realMouseInLogo;
+            window.realMouseIdleUntil = Date.now() + 2000;
+            const { logoGrid, shouldUseRealMouse } = syncRealMouseControl();
 
             window.wiggleDots.forEach(dot => {
                 const isMainLogoDot = logoGrid && (logoGrid.contains(dot) || dot.hasAttribute('data-is-clone'));
 
                 // Skip logo dots if the real mouse is outside the logo (let fake mouse handle them)
-                if (!realMouseInLogo && isMainLogoDot) {
+                if (!shouldUseRealMouse && isMainLogoDot) {
                     return;
                 }
                 processWiggle(dot, window.realMouse.x, window.realMouse.y);
@@ -746,14 +761,13 @@ export const initAnimations = (containerSelector) => {
 
         // Fake mouse loop for idle animation on the main logo
         const animateFakeMouse = () => {
-            gsap.to(window.fakeMouseProgress, {
+            window.fakeMouseTween = gsap.to(window.fakeMouseProgress, {
                 x: "random(0.1, 0.9)",
                 y: "random(0.1, 0.9)",
                 duration: "random(1.5, 2.4)",
                 ease: "sine.inOut",
                 onUpdate: () => {
                     if (window.isAnimationComplete === false) return;
-                    if (window.isRealMouseActive) return; // Yield to real mouse
                     if (!window.wiggleDots || window.wiggleDots.length === 0) return;
 
                     // Stop the fake mouse effect if the user has scrolled
@@ -761,8 +775,9 @@ export const initAnimations = (containerSelector) => {
                     const heroProgress = hero ? Math.max(0, -hero.getBoundingClientRect().top / Math.max(hero.offsetHeight, 1)) : 0;
                     if (heroProgress > 0.05) return;
 
-                    const logoGrid = document.getElementById('logo-grid');
+                    const { logoGrid, shouldUseRealMouse } = syncRealMouseControl();
                     if (!logoGrid) return;
+                    if (shouldUseRealMouse) return;
 
                     const rect = logoGrid.getBoundingClientRect();
                     const fakeX = rect.left + rect.width * window.fakeMouseProgress.x;
@@ -778,7 +793,10 @@ export const initAnimations = (containerSelector) => {
                         processWiggle(dot, fakeX, fakeY);
                     });
                 },
-                onComplete: animateFakeMouse
+                onComplete: () => {
+                    window.fakeMouseTween = null;
+                    animateFakeMouse();
+                }
             });
         };
         animateFakeMouse();

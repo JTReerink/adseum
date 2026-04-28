@@ -71,10 +71,6 @@ export function deriveSectionId(section = {}) {
     return slugify(deriveSectionName(section));
 }
 
-export function isContactSection(section = {}) {
-    return section?.specialType === 'contact' || section?.id === 'contact';
-}
-
 function inferStoredItemType(name, data = {}) {
     if (data.itemType === 'graphic' || data.type === 'graphic') return 'graphic';
     if (data.itemType === 'letter' || data.type === 'letter') return 'letter';
@@ -117,6 +113,7 @@ export function createSection(overrides = {}) {
         bodyHtml: sanitizeRichHtml(overrides.bodyHtml || '<p>Add your section content here.</p>'),
         specialType: specialType || null,
         isSplit: Boolean(overrides.isSplit),
+        splitLayout: overrides.splitLayout === 'text-right' ? 'text-right' : 'text-left',
         graphicType: overrides.graphicType && ['image', 'dot'].includes(overrides.graphicType) ? overrides.graphicType : (overrides.isSplit ? 'dot' : null),
         graphicName: typeof overrides.graphicName === 'string' ? overrides.graphicName.trim() : '',
         graphicUrl: typeof overrides.graphicUrl === 'string' ? overrides.graphicUrl.trim() : ''
@@ -141,9 +138,7 @@ export const DEFAULT_SITE_CONTENT = {
     sections: convertLegacySections(),
     dotPalette: [...DEFAULT_DOT_PALETTE],
     animationPause: 1.5,
-    animationSpeed: 1.0,
-    contactEmail: '',
-    contactSubtext: ''
+    animationSpeed: 1.0
 };
 
 export function normalizeSiteContent(data = {}) {
@@ -164,9 +159,7 @@ export function normalizeSiteContent(data = {}) {
         sections: sections.length > 0 ? sections : DEFAULT_SITE_CONTENT.sections.map((section) => createSection(section)),
         dotPalette: normalizeDotPalette(data.dotPalette),
         animationPause: Math.max(0, Math.min(10, animationPause)),
-        animationSpeed: Math.max(0.1, Math.min(5, animationSpeed)),
-        contactEmail: typeof data.contactEmail === 'string' ? data.contactEmail.trim() : '',
-        contactSubtext: typeof data.contactSubtext === 'string' ? data.contactSubtext.trim() : ''
+        animationSpeed: Math.max(0.1, Math.min(5, animationSpeed))
     };
 }
 

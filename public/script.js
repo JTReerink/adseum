@@ -2,7 +2,6 @@ import { renderText } from './modules/renderer.js';
 import { animateDots, initAnimations, initScrollAnimations, initNavScrollAnimation, initDotReverseAnimation } from './modules/animations.js';
 import {
     DEFAULT_SITE_CONTENT,
-    isContactSection,
     listenToLetters,
     listenToSiteContent,
     sanitizeRichHtml,
@@ -123,34 +122,6 @@ function buildNavigation(sections) {
     });
 }
 
-function buildContactEmail(container) {
-    const content = getSiteContent();
-    const email = content.contactEmail;
-    if (!email || !email.includes('@')) return;
-
-    const atIndex = email.indexOf('@');
-    const user = email.substring(0, atIndex);
-    const domain = email.substring(atIndex + 1);
-
-    const wrapper = document.createElement('div');
-    wrapper.className = 'contact-email-wrapper';
-
-    if (content.contactSubtext) {
-        const subtext = document.createElement('p');
-        subtext.className = 'contact-subtext';
-        subtext.textContent = content.contactSubtext;
-        wrapper.appendChild(subtext);
-    }
-
-    const link = document.createElement('a');
-    link.href = 'mailto:' + user + '@' + domain;
-    link.className = 'contact-email-link';
-    link.textContent = user + '@' + domain;
-    wrapper.appendChild(link);
-
-    container.appendChild(wrapper);
-}
-
 function buildSections(sections) {
     sectionsRoot.innerHTML = '';
 
@@ -158,6 +129,7 @@ function buildSections(sections) {
         const sectionElement = document.createElement('section');
         sectionElement.id = section.id;
         const isLast = index === sections.length - 1;
+        const isSplitRight = section.isSplit && section.splitLayout === 'text-right';
         sectionElement.className = [
             'cms-section',
             'w-full',
@@ -198,7 +170,7 @@ function buildSections(sections) {
 
         const heading = document.createElement('div');
         heading.className = section.isSplit
-            ? 'w-full max-w-6xl flex flex-wrap justify-start gap-4'
+            ? `w-full max-w-6xl flex flex-wrap gap-4 ${isSplitRight ? 'justify-end' : 'justify-start'}`
             : 'w-full flex flex-wrap mb-12 justify-center gap-y-8';
         if (section.isSplit) heading.style.marginBottom = '2.5rem';
 
@@ -206,20 +178,21 @@ function buildSections(sections) {
             const dotHeading = document.createElement('div');
             dotHeading.id = `section-title-${section.id}`;
             dotHeading.className = 'cms-dot-heading';
+            if (isSplitRight) dotHeading.style.justifyContent = 'flex-end';
             const fallbackHeading = document.createElement('h2');
-            fallbackHeading.className = `dot-fallback-heading ${section.isSplit ? 'text-left' : 'text-center'}`;
+            fallbackHeading.className = `dot-fallback-heading ${section.isSplit ? (isSplitRight ? 'text-right' : 'text-left') : 'text-center'}`;
             fallbackHeading.textContent = section.title;
             dotHeading.appendChild(fallbackHeading);
             heading.appendChild(dotHeading);
         } else {
             const plainHeading = document.createElement('h2');
-            plainHeading.className = `dot-fallback-heading ${section.isSplit ? 'text-left' : 'text-center'}`;
+            plainHeading.className = `dot-fallback-heading ${section.isSplit ? (isSplitRight ? 'text-right' : 'text-left') : 'text-center'}`;
             plainHeading.textContent = section.title;
             heading.appendChild(plainHeading);
         }
 
         const body = document.createElement('div');
-        body.className = `cms-section-body rich-content ${section.isSplit ? 'max-w-none text-left' : 'max-w-2xl mx-auto text-center'} text-lg md:text-xl leading-relaxed font-medium`;
+        body.className = `cms-section-body rich-content ${section.isSplit ? `max-w-none ${isSplitRight ? 'text-right' : 'text-left'}` : 'max-w-2xl mx-auto text-center'} text-lg md:text-xl leading-relaxed font-medium`;
         
         // Force the text to be pure black to prevent optical color blending from the background
         body.style.color = '#111111';
@@ -227,12 +200,12 @@ function buildSections(sections) {
         setRichContent(body, section.bodyHtml);
 
         const contentColumn = document.createElement('div');
-        contentColumn.className = section.isSplit ? 'space-y-8' : '';
+        contentColumn.className = section.isSplit ? `space-y-8 ${isSplitRight ? 'lg:order-2' : 'lg:order-1'}` : '';
 
         if (section.isSplit) {
             contentColumn.appendChild(body);
             const graphicColumn = document.createElement('div');
-            graphicColumn.className = 'cms-section-graphic flex justify-center items-center';
+            graphicColumn.className = `cms-section-graphic flex justify-center items-center ${isSplitRight ? 'lg:order-1' : 'lg:order-2'}`;
             
             // On mobile, the graphic bleeds out of its bounding box due to the 1.5 visualScale.
             // We add a top margin to explicitly push it away from the text block.
@@ -262,16 +235,17 @@ function buildSections(sections) {
             }
 
             sectionElement.appendChild(heading);
-            inner.appendChild(contentColumn);
-            inner.appendChild(graphicColumn);
+            if (isSplitRight) {
+                inner.appendChild(graphicColumn);
+                inner.appendChild(contentColumn);
+            } else {
+                inner.appendChild(contentColumn);
+                inner.appendChild(graphicColumn);
+            }
         } else {
             contentColumn.appendChild(heading);
             contentColumn.appendChild(body);
             inner.appendChild(contentColumn);
-        }
-
-        if (isContactSection(section)) {
-            buildContactEmail(inner);
         }
 
         sectionElement.appendChild(inner);
@@ -322,7 +296,7 @@ function renderDynamicDotContent() {
                 section.title,
                 { dotSize: 8, monochrome: true, visualScale: 1.3 },
                 'h2',
-                `dot-fallback-heading ${section.isSplit ? 'text-left' : 'text-center'}`
+                `dot-fallback-heading ${section.isSplit ? (section.splitLayout === 'text-right' ? 'text-right' : 'text-left') : 'text-center'}`
             );
         }
 
