@@ -327,11 +327,15 @@ export const initNavScrollAnimation = () => {
         transformOrigin: 'center center',
     });
 
+    const navHeight = navbar.offsetHeight;
+
     const tl = gsap.timeline({
         scrollTrigger: {
             trigger: '#hero',
             start: 'top top',
-            end: 'bottom top', // Animation runs exactly as hero scrolls out (100vh)
+            // End earlier so the logo is fully docked by the time a nav-link
+            // scroll lands the next section just below the navbar.
+            end: `bottom top+=${navHeight}`,
             scrub: 1,
             onUpdate: (self) => {
                 if (subtitle) {
@@ -379,6 +383,9 @@ export const initDotReverseAnimation = () => {
     const inkDots = Array.from(logoGrid.querySelectorAll('.dot-wrapper svg[data-type="ink"]'));
     if (!inkDots.length) return;
 
+    const navbar = document.getElementById('navbar');
+    const navHeight = navbar ? navbar.offsetHeight : 0;
+
     // Fixed overlay sits below the flying logo (z-index 51) and navbar (z-index 100).
     // Hidden until the intro animation finishes so clones don't appear during the ink-to-dots sequence.
     const overlayEl = document.createElement('div');
@@ -411,7 +418,7 @@ export const initDotReverseAnimation = () => {
         scrollTrigger: {
             trigger: '#hero',
             start: 'top top',
-            end: 'bottom top',
+            end: `bottom top+=${navHeight}`,
             scrub: 1,
         },
     });
