@@ -89,16 +89,40 @@ export function escapeHtml(value = '') {
         .replace(/'/g, '&#39;');
 }
 
+const FONT_SIZE_VALUE_RE = /^[0-9]+(?:\.[0-9]+)?(em|rem|px|%)$/i;
+
 export function sanitizeRichHtml(html = '') {
     if (typeof document === 'undefined') {
         return html;
     }
-    
-    // Using DOMPurify to securely sanitize inputs
-    return DOMPurify.sanitize(html, {
+
+    const sanitized = DOMPurify.sanitize(html, {
         USE_PROFILES: { html: true },
         FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed']
-    }).trim();
+    });
+
+    // Strip pasted/foreign inline styles (Word, Pages, etc.) and pasted classes
+    // so site styling applies consistently. Only keep `font-size` on <span>
+    // elements, which is the format produced by the editor's size picker.
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = sanitized;
+
+    wrapper.querySelectorAll('[style]').forEach((el) => {
+        const fontSize = el.style.fontSize;
+        el.removeAttribute('style');
+        if (el.tagName.toLowerCase() === 'span' && fontSize) {
+            const normalized = fontSize.replace(/\s+/g, '');
+            if (FONT_SIZE_VALUE_RE.test(normalized)) {
+                el.style.fontSize = normalized;
+            }
+        }
+    });
+
+    wrapper.querySelectorAll('[class]').forEach((el) => {
+        el.removeAttribute('class');
+    });
+
+    return wrapper.innerHTML.trim();
 }
 
 export function normalizeLocalizedValue(value = '', sanitizer = (input) => input) {

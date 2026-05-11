@@ -409,6 +409,14 @@ function renderSections() {
                                     <button type="button" data-editor-block="h3">H3</button>
                                     <button type="button" data-editor-block="blockquote">Quote</button>
                                     <button type="button" data-editor-action="link">Link</button>
+                                    <select data-editor-fontsize aria-label="Tekstgrootte van selectie" title="Selecteer eerst tekst, kies dan een grootte">
+                                        <option value="">—</option>
+                                        <option value="0.75em">Klein</option>
+                                        <option value="1em" selected>Standaard</option>
+                                        <option value="1.25em">Groot</option>
+                                        <option value="1.5em">Extra groot</option>
+                                        <option value="2em">Reusachtig</option>
+                                    </select>
                                     <button type="button" data-editor-action="clear">Clear</button>
                                 </div>
                                 <div id="section-body-editor-${index}-nl" class="rich-editor-surface rich-content" contenteditable="true"
@@ -424,6 +432,14 @@ function renderSections() {
                                     <button type="button" data-editor-block="h3">H3</button>
                                     <button type="button" data-editor-block="blockquote">Quote</button>
                                     <button type="button" data-editor-action="link">Link</button>
+                                    <select data-editor-fontsize aria-label="Tekstgrootte van selectie" title="Selecteer eerst tekst, kies dan een grootte">
+                                        <option value="">—</option>
+                                        <option value="0.75em">Klein</option>
+                                        <option value="1em" selected>Standaard</option>
+                                        <option value="1.25em">Groot</option>
+                                        <option value="1.5em">Extra groot</option>
+                                        <option value="2em">Reusachtig</option>
+                                    </select>
                                     <button type="button" data-editor-action="clear">Clear</button>
                                 </div>
                                 <div id="section-body-editor-${index}-en" class="rich-editor-surface rich-content" contenteditable="true"
@@ -521,6 +537,153 @@ function moveSection(index, direction) {
     renderSections();
 }
 
+const FONT_SIZE_VALUE_RE = /^[0-9]+(?:\.[0-9]+)?(em|rem|px|%)$/i;
+
+function selectionWithinSurface(surface) {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return null;
+    const range = selection.getRangeAt(0);
+    if (range.collapsed) return null;
+    if (!surface.contains(range.commonAncestorContainer)) return null;
+    return { selection, range };
+}
+
+function isFontSizeSpan(node) {
+    return node?.nodeType === Node.ELEMENT_NODE
+        && node.tagName === 'SPAN'
+        && node.style?.fontSize;
+}
+
+function unwrapFontSizeSpan(span) {
+    const parent = span.parentNode;
+    if (!parent) return;
+    while (span.firstChild) parent.insertBefore(span.firstChild, span);
+    parent.removeChild(span);
+}
+
+function findContainingFontSizeSpan(range, surface) {
+    let n = range.startContainer.nodeType === Node.ELEMENT_NODE
+        ? range.startContainer
+        : range.startContainer.parentNode;
+    while (n && n !== surface) {
+        if (isFontSizeSpan(n) && n.contains(range.endContainer)) return n;
+        n = n.parentNode;
+    }
+    return null;
+}
+
+function splitOutOfAncestorSpan(range, span) {
+    const parent = span.parentNode;
+    if (!parent) return;
+
+    const beforeRange = document.createRange();
+    beforeRange.setStart(span, 0);
+    beforeRange.setEnd(range.startContainer, range.startOffset);
+    const beforeFrag = beforeRange.extractContents();
+
+    const afterRange = document.createRange();
+    afterRange.setStart(range.endContainer, range.endOffset);
+    afterRange.setEnd(span, span.childNodes.length);
+    const afterFrag = afterRange.extractContents();
+
+    // Only create a clone if the extracted portion actually carries content.
+    // Adjacent boundaries (e.g. span[0] → text[0]) still produce a non-collapsed
+    // fragment with an empty text node, which would otherwise leave empty husks.
+    if (beforeFrag.firstChild && beforeFrag.textContent !== '') {
+        const clone = span.cloneNode(false);
+        clone.appendChild(beforeFrag);
+        parent.insertBefore(clone, span);
+    }
+    if (afterFrag.firstChild && afterFrag.textContent !== '') {
+        const clone = span.cloneNode(false);
+        clone.appendChild(afterFrag);
+        parent.insertBefore(clone, span.nextSibling);
+    }
+}
+
+function liberateRangeFromSizedAncestors(range, surface) {
+    // Repeatedly find the innermost sized ancestor and split it around the
+    // range, then unwrap the (now shrunk) original so the range content is
+    // free of inherited font-size. Loop because spans may be nested.
+    for (let i = 0; i < 16; i++) {
+        const span = findContainingFontSizeSpan(range, surface);
+        if (!span) return;
+
+        splitOutOfAncestorSpan(range, span);
+
+        // The unwrap moves children out of `span` which causes live-range
+        // updates that re-anchor start/end to the new parent. Capture the
+        // text-node boundaries first so we can restore them afterwards.
+        const startNode = range.startContainer;
+        const startOffset = range.startOffset;
+        const endNode = range.endContainer;
+        const endOffset = range.endOffset;
+
+        unwrapFontSizeSpan(span);
+
+        try {
+            if (surface.contains(startNode) && surface.contains(endNode)) {
+                range.setStart(startNode, startOffset);
+                range.setEnd(endNode, endOffset);
+            } else {
+                return;
+            }
+        } catch (err) {
+            return;
+        }
+
+        if (!surface.contains(range.commonAncestorContainer)) return;
+    }
+}
+
+function applyFontSize(surface, size) {
+    surface.focus();
+    const ctx = selectionWithinSurface(surface);
+    if (!ctx) return;
+    const { selection, range } = ctx;
+    const validSize = size && FONT_SIZE_VALUE_RE.test(size) ? size : '';
+
+    liberateRangeFromSizedAncestors(range, surface);
+
+    let fragment;
+    try {
+        fragment = range.extractContents();
+    } catch (err) {
+        console.warn('Kon de selectie niet bewerken.', err);
+        return;
+    }
+
+    if (fragment.querySelectorAll) {
+        Array.from(fragment.querySelectorAll('span[style*="font-size"]')).forEach(unwrapFontSizeSpan);
+    }
+
+    let content;
+    if (validSize) {
+        content = document.createElement('span');
+        content.style.fontSize = validSize;
+        content.appendChild(fragment);
+    } else {
+        content = fragment;
+    }
+
+    const firstNode = content instanceof DocumentFragment ? content.firstChild : content;
+    const lastNode = content instanceof DocumentFragment ? content.lastChild : content;
+
+    range.insertNode(content);
+
+    if (firstNode?.parentNode && lastNode?.parentNode) {
+        const newRange = document.createRange();
+        try {
+            newRange.setStartBefore(firstNode);
+            newRange.setEndAfter(lastNode);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+        } catch (e) {
+            /* selection restore is best-effort */
+        }
+    }
+}
+
 function applyEditorCommand(button) {
     const toolbar = button.closest('[data-editor-toolbar]');
     const surface = toolbar ? document.getElementById(toolbar.dataset.target) : null;
@@ -534,6 +697,7 @@ function applyEditorCommand(button) {
     } else if (button.dataset.editorAction === 'clear') {
         document.execCommand('removeFormat', false, null);
         document.execCommand('unlink', false, null);
+        applyFontSize(surface, '');
     } else if (button.dataset.editorBlock) {
         document.execCommand('formatBlock', false, `<${button.dataset.editorBlock.toLowerCase()}>`);
     } else if (button.dataset.editorCommand) {
@@ -542,6 +706,106 @@ function applyEditorCommand(button) {
 
     if (Object.values(heroSubtitleEditors).includes(surface)) syncHeroEditor();
     else syncSectionRichEditor(surface);
+}
+
+const FONT_SIZE_PRESETS = new Set(['0.75em', '1em', '1.25em', '1.5em', '2em']);
+
+function normalizeFontSizeValue(value) {
+    return (value || '').replace(/\s+/g, '').toLowerCase();
+}
+
+function findActiveEditorSurface() {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    const anchor = sel.anchorNode;
+    if (!anchor) return null;
+    const startEl = anchor.nodeType === Node.ELEMENT_NODE ? anchor : anchor.parentElement;
+    return startEl ? startEl.closest('.rich-editor-surface[contenteditable="true"]') : null;
+}
+
+function findFontSizeAtNode(node, surface) {
+    let current = node;
+    while (current && current !== surface) {
+        if (current.nodeType === Node.ELEMENT_NODE && current.style && current.style.fontSize) {
+            const value = normalizeFontSizeValue(current.style.fontSize);
+            if (value) return value;
+        }
+        current = current.parentNode;
+    }
+    return '';
+}
+
+function collectFontSizesInRange(range, surface) {
+    const sizes = new Set();
+    if (range.collapsed) return sizes;
+    const walker = document.createTreeWalker(surface, NodeFilter.SHOW_TEXT, {
+        acceptNode: (n) => {
+            // Skip empty and whitespace-only nodes so the space BETWEEN two
+            // same-sized spans doesn't register as a different "size".
+            if (n.textContent.length === 0) return NodeFilter.FILTER_REJECT;
+            if (/^\s+$/.test(n.textContent)) return NodeFilter.FILTER_REJECT;
+            return range.intersectsNode(n) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        }
+    });
+    let node;
+    while ((node = walker.nextNode())) {
+        sizes.add(findFontSizeAtNode(node, surface));
+    }
+    return sizes;
+}
+
+function resolveIndicatorValue(surface) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return '1em';
+    const range = sel.getRangeAt(0);
+    if (!surface.contains(range.commonAncestorContainer)) return '1em';
+
+    if (range.collapsed) {
+        const anchor = sel.anchorNode;
+        const startEl = anchor?.nodeType === Node.ELEMENT_NODE ? anchor : anchor?.parentElement;
+        const found = startEl ? findFontSizeAtNode(startEl, surface) : '';
+        if (!found) return '1em';
+        return FONT_SIZE_PRESETS.has(found) ? found : '';
+    }
+
+    const sizes = collectFontSizesInRange(range, surface);
+    if (sizes.size === 0) return '1em';
+    if (sizes.size === 1) {
+        const only = [...sizes][0];
+        if (!only) return '1em';
+        return FONT_SIZE_PRESETS.has(only) ? only : '';
+    }
+    // Mixed sizes across the selection.
+    return '';
+}
+
+function updateFontSizeIndicator() {
+    const surface = findActiveEditorSurface();
+    if (!surface) return;
+    const toolbar = document.querySelector(`[data-editor-toolbar][data-target="${surface.id}"]`);
+    const select = toolbar?.querySelector('select[data-editor-fontsize]');
+    if (!select) return;
+    const value = resolveIndicatorValue(surface);
+    if (select.value !== value) select.value = value;
+}
+
+function applyEditorFontSize(select) {
+    const toolbar = select.closest('[data-editor-toolbar]');
+    const surface = toolbar ? document.getElementById(toolbar.dataset.target) : null;
+    if (!surface) return;
+    // Empty value is the "—" placeholder for the mixed/unknown state; picking
+    // it should not change anything.
+    if (!select.value) {
+        updateFontSizeIndicator();
+        return;
+    }
+    const size = select.value === '1em' ? '' : select.value;
+    applyFontSize(surface, size);
+
+    if (Object.values(heroSubtitleEditors).includes(surface)) syncHeroEditor();
+    else syncSectionRichEditor(surface);
+
+    updateFontSizeIndicator();
 }
 
 /* ── Editor management ── */
@@ -892,6 +1156,14 @@ document.addEventListener('click', (event) => {
     if (!editorButton) return;
     applyEditorCommand(editorButton);
 });
+
+document.addEventListener('change', (event) => {
+    const sizeSelect = event.target.closest('[data-editor-toolbar] select[data-editor-fontsize]');
+    if (!sizeSelect) return;
+    applyEditorFontSize(sizeSelect);
+});
+
+document.addEventListener('selectionchange', updateFontSizeIndicator);
 
 Object.values(heroSubtitleEditors).forEach((editor) => {
     editor?.addEventListener('input', syncHeroEditor);
