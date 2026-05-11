@@ -443,9 +443,14 @@ body:not(.intro-complete) .subtitle-anim {
     text-underline-offset: 0.16em;
 }
 
+.rich-content b,
 .rich-content strong {
-    font-weight: 700;
+    font-weight: 800;
     color: #111827;
+}
+
+.rich-content span[style*="font-size"] {
+    line-height: 1.4;
 }
 
 .rich-content em {
@@ -587,6 +592,33 @@ body.admin-pending #admin-app {
     text-underline-offset: 0.14em;
     text-transform: none;
     letter-spacing: 0;
+}
+
+.editor-toolbar select[data-editor-fontsize] {
+    border: 1px solid var(--cms-border-strong);
+    background: white;
+    color: var(--cms-text);
+    border-radius: 0.5rem;
+    padding: 0.3rem 1.5rem 0.3rem 0.65rem;
+    font-size: 0.72rem;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    font-family: 'DM Mono', monospace;
+    cursor: pointer;
+    text-transform: uppercase;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%23555' stroke-width='1.4' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.55rem center;
+    background-size: 0.6rem 0.4rem;
+    transition: border-color 0.15s, background-color 0.15s;
+}
+
+.editor-toolbar select[data-editor-fontsize]:hover,
+.editor-toolbar select[data-editor-fontsize]:focus {
+    border-color: var(--cms-brand-blue);
+    outline: none;
 }
 
 .editor-toolbar button:hover {
