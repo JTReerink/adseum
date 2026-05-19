@@ -34,12 +34,19 @@ src/
   input.css              # Tailwind entrypoint (importeert style.css)
 firestore.rules          # Firestore security rules
 firestore.indexes.json   # Firestore indexen
-firebase.json            # Firebase Hosting config
+firebase.json            # Firebase Hosting + Firestore config
+.firebaserc              # Firebase-project alias (default: adseum-53dcd)
 preview-server.js        # lokale dev-server (statisch, geen reload)
+tailwind.config.js       # Tailwind content-scan paths
+eslint.config.js         # ESLint flat config
+.prettierrc.json         # Prettier config
+.editorconfig            # Editor indentatie/EOL
 .github/workflows/       # CI: deploy-preview + deploy-live
 ```
 
 ## Lokaal draaien
+
+Vereist: Node 18+ (zie `.nvmrc`).
 
 ```bash
 npm install
@@ -56,14 +63,21 @@ npm run watch:css
 ## Deploy
 
 CI deployt automatisch:
-- **Preview** op elke PR (`.github/workflows/deploy-preview.yml`)
-- **Live** bij merge naar `main` (`.github/workflows/deploy-live.yml`)
+- **Preview-channel** op elke push naar een non-`main` branch (`.github/workflows/deploy-preview.yml`)
+- **Live** bij push naar `main` (`.github/workflows/deploy-live.yml`)
 
-Handmatig:
+Beide workflows hebben een `FIREBASE_TOKEN` repo-secret nodig. Genereer met:
 
 ```bash
-npm run build:css
-firebase deploy --only hosting
+npx firebase-tools login:ci
+```
+
+en zet de output in **GitHub → Settings → Secrets → Actions → FIREBASE_TOKEN**.
+
+Handmatig deployen:
+
+```bash
+npm run deploy            # build:css + firebase deploy --only hosting
 ```
 
 ## CMS
@@ -84,8 +98,16 @@ Zie de [Firebase docs over API keys](https://firebase.google.com/docs/projects/a
 
 ## Codestijl
 
-- ESLint + Prettier — zie `.eslintrc.json` en `.prettierrc`.
-- Run lokaal: `npm run lint` / `npm run format`.
+- ESLint config: `eslint.config.js` (flat config)
+- Prettier config: `.prettierrc.json` + `.prettierignore`
+- Editor: `.editorconfig` voor consistente indentatie
+
+Run lokaal:
+
+```bash
+npm run lint              # eslint over public/**/*.js
+npm run format            # prettier --write
+```
 
 ## Open punten
 

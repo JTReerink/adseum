@@ -10,7 +10,7 @@
     "serve": "node preview-server.js",
     "lint": "eslint \"public/**/*.js\"",
     "format": "prettier --write \"public/**/*.{js,css,html}\" \"src/**/*.css\" \"*.{json,md}\"",
-    "deploy": "npm run build:css && firebase deploy --only hosting"
+    "deploy": "npm run build:css && npx firebase-tools deploy --only hosting"
   },
   "repository": {
     "type": "git",
@@ -21,8 +21,8 @@
   },
   "homepage": "https://github.com/JTReerink/adseum#readme",
   "license": "UNLICENSED",
-  "dependencies": {
-    "firebase": "^12.10.0"
+  "engines": {
+    "node": ">=18"
   },
   "devDependencies": {
     "eslint": "^9.17.0",
