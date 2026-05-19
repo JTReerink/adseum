@@ -268,24 +268,8 @@ function renderStaticContent() {
     buildSections(content.sections);
 }
 
-function renderDynamicDotContent() {
+function renderSectionDotContent() {
     const content = getSiteContent();
-    const logoGrid = document.getElementById('logo-grid');
-
-    if (logoGrid) {
-        logoGrid.innerHTML = '';
-        renderText('logo-grid', 'ADseum', { visualScale: 1.35, gap: 2 });
-    }
-
-    if (navLogo) {
-        navLogo.innerHTML = '';
-        // Logo size dynamically adjusts for mobile to prevent clipping
-        const isMobile = window.innerWidth < 768;
-        renderText('nav-logo', 'ADseum', { 
-            dotSize: isMobile ? 3 : 4.5, 
-            visualScale: isMobile ? 1 : 1.35 
-        });
-    }
 
     content.sections.forEach((section) => {
         if (section.navUseDots) {
@@ -316,6 +300,26 @@ function renderDynamicDotContent() {
             }
         }
     });
+}
+
+function renderDynamicDotContent() {
+    const logoGrid = document.getElementById('logo-grid');
+
+    if (logoGrid) {
+        logoGrid.innerHTML = '';
+        renderText('logo-grid', 'ADseum', { visualScale: 1.35, gap: 2 });
+    }
+
+    if (navLogo) {
+        navLogo.innerHTML = '';
+        const isMobile = window.innerWidth < 768;
+        renderText('nav-logo', 'ADseum', {
+            dotSize: isMobile ? 3 : 4.5,
+            visualScale: isMobile ? 1 : 1.35
+        });
+    }
+
+    renderSectionDotContent();
 }
 
 function syncLocaleSwitchUi() {
@@ -326,40 +330,6 @@ function syncLocaleSwitchUi() {
     });
 }
 
-function renderLocalizedDynamicContent() {
-    const content = getSiteContent();
-
-    content.sections.forEach((section) => {
-        if (section.navUseDots) {
-            renderDotField(
-                document.getElementById(`nav-label-${section.id}`),
-                getLocalizedText(section.navLabel),
-                { dotSize: 4, monochrome: true, letterSpacing: 4, gap: 1.5, visualScale: 1.3 },
-                'span',
-                'nav-text-label'
-            );
-        }
-
-        if (section.titleUseDots) {
-            renderDotField(
-                document.getElementById(`section-title-${section.id}`),
-                getLocalizedText(section.title),
-                { dotSize: 8, monochrome: true, visualScale: 1.3 },
-                'h2',
-                `dot-fallback-heading ${section.isSplit ? (section.splitLayout === 'text-right' ? 'text-right' : 'text-left') : 'text-center'}`
-            );
-        }
-
-        if (section.isSplit && section.graphicType === 'dot') {
-            const graphicWrapper = document.getElementById(`section-graphic-${section.id}`);
-            if (graphicWrapper && section.graphicName) {
-                graphicWrapper.innerHTML = '';
-                renderSplitGraphic(graphicWrapper.id, section.graphicName);
-            }
-        }
-    });
-}
-
 function rerenderLocalizedPage() {
     renderStaticContent();
 
@@ -367,7 +337,7 @@ function rerenderLocalizedPage() {
         return;
     }
 
-    renderLocalizedDynamicContent();
+    renderSectionDotContent();
 
     if (window.ScrollTrigger) {
         ScrollTrigger.getAll().forEach((trigger) => {

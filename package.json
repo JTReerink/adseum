@@ -1,28 +1,33 @@
 {
   "name": "adseum",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "description": "ADSEUM website — static site on Firebase Hosting with a Firestore-backed in-browser CMS.",
+  "type": "commonjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build:css": "tailwindcss -i ./src/input.css -o ./public/output.css"
+    "build:css": "tailwindcss -i ./src/input.css -o ./public/output.css --minify",
+    "watch:css": "tailwindcss -i ./src/input.css -o ./public/output.css --watch",
+    "serve": "node preview-server.js",
+    "lint": "eslint \"public/**/*.js\"",
+    "format": "prettier --write \"public/**/*.{js,css,html}\" \"src/**/*.css\" \"*.{json,md}\"",
+    "deploy": "npm run build:css && firebase deploy --only hosting"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/JTReerink/adseum.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/JTReerink/adseum/issues"
   },
   "homepage": "https://github.com/JTReerink/adseum#readme",
+  "license": "UNLICENSED",
   "dependencies": {
     "firebase": "^12.10.0"
   },
   "devDependencies": {
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.2",
     "tailwindcss": "^3.4.17"
   }
 }

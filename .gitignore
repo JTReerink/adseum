@@ -70,3 +70,4 @@ node_modules/
 
 # Local Codex/Claude worktrees
 .claude/worktrees/
+.claude/settings.local.json
